@@ -100,6 +100,10 @@ def _save(k: int, field: str, wkey: str) -> None:
     if field == "status" and v is None:  # 再點一次已選的狀態會取消選取
         v = "未看"
     st.session_state.fb_data[k][field] = v
+    # 手機（fb_p*）與電腦（fb_s/fb_t）是不同元件；清掉另一種的同項狀態，切換版面時才會從 fb_data 重新帶入
+    others = ("fb_s_", "fb_t_") if wkey.startswith("fb_p") else ("fb_ps_", "fb_pt_")
+    for prefix in others:
+        st.session_state.pop(f"{prefix}{k}", None)
 
 
 def _go(n: int) -> None:
@@ -164,7 +168,7 @@ def _apply_loaded(raw: str) -> None:
         return
     st.session_state.fb_data = data
     st.session_state.fb_reviewer = reviewer
-    for key in [x for x in st.session_state if str(x).startswith(("fb_s_", "fb_t_"))]:
+    for key in [x for x in st.session_state if str(x).startswith(("fb_s_", "fb_t_", "fb_ps_", "fb_pt_"))]:
         del st.session_state[key]  # 讓目前這一項的元件改用讀回來的內容
     first = next((k for k, v in data.items() if v["status"] == "未看"), 0)
     _go(first)
@@ -263,12 +267,12 @@ else:
 tab_fb, tab_view = st.tabs(["v3 逐項反饋", "各版預覽"])
 
 # ---------- v3 逐項反饋 ----------
-# 手機：一次一項、按鈕大、頁面預覽收在「看這一頁」裡；電腦：左邊看頁面、右邊填意見。
+# 手機：一頁捲到底的清單（phone_page）；電腦：左邊看頁面、右邊一項一項填。
 ua = st.context.headers.get("user-agent") or ""
 is_phone_ua = any(x in ua for x in ("iPhone", "Android", "Mobile"))
 
 
-def item_form(k: int, compact: bool) -> None:
+def item_form(k: int) -> None:
     """一項的填寫區：狀態、意見、上一項／下一項。"""
     data = st.session_state.fb_data
     group, item, hint, _ = FEEDBACK_ITEMS[k]
@@ -283,7 +287,7 @@ def item_form(k: int, compact: bool) -> None:
         on_change=_save, args=(k, "status", f"fb_s_{k}"),
     )
     st.text_area(
-        "意見", key=f"fb_t_{k}", height=140 if compact else 200,
+        "意見", key=f"fb_t_{k}", height=200,
         on_change=_save, args=(k, "text", f"fb_t_{k}"), placeholder="哪裡要改、想改成什麼樣子",
     )
     b1, b2 = st.columns(2)
@@ -292,95 +296,122 @@ def item_form(k: int, compact: bool) -> None:
               type="primary", width="stretch")
 
 
-def page_preview(k: int, phone: bool) -> None:
+def page_preview(k: int) -> None:
     page_href = FEEDBACK_ITEMS[k][3]
     if not page_href:
         st.info("這一項是問題，沒有對應的頁面，直接寫答案即可。")
         return
-    if phone:
-        st.iframe(static_url(f"v3/{page_href}"), width="stretch", height=620)
-    else:
-        fb_size = st.segmented_control("預覽尺寸", list(FB_SIZES), default="手機", key="fb_size")
-        w, h = FB_SIZES[fb_size or "手機"]
-        st.iframe(static_url(f"v3/{page_href}"), width=w, height=h)
+    fb_size = st.segmented_control("預覽尺寸", list(FB_SIZES), default="手機", key="fb_size")
+    w, h = FB_SIZES[fb_size or "手機"]
+    st.iframe(static_url(f"v3/{page_href}"), width=w, height=h)
+
+
+@st.dialog("頁面預覽", width="large")
+def preview_dialog(k: int) -> None:
+    st.caption(FEEDBACK_ITEMS[k][1])
+    st.iframe(static_url(f"v3/{FEEDBACK_ITEMS[k][3]}"), width="stretch", height=600)
+
+
+def phone_page(data: dict) -> str:
+    """手機版：28 項一頁捲到底，依分組列出；每項兩個按鈕，選「要修改」才出現意見欄。回傳填寫人。"""
+    count = {x: sum(v["status"] == x for v in data.values()) for x in STATUS}
+    done = len(FEEDBACK_ITEMS) - count["未看"]
+    st.progress(done / len(FEEDBACK_ITEMS),
+                text=f"已看 {done} / {len(FEEDBACK_ITEMS)}　要修改 {count['要修改']}")
+    reviewer = st.text_input("填寫人", placeholder="例如：柏任", key="fb_reviewer")
+    group = None
+    for k, (g, item, hint, page_href) in enumerate(FEEDBACK_ITEMS):
+        if g != group:
+            n_done = sum(data[j]["status"] != "未看" for j, x in enumerate(FEEDBACK_ITEMS) if x[0] == g)
+            n_all = sum(1 for x in FEEDBACK_ITEMS if x[0] == g)
+            st.markdown(f"#### {g}　<small>{n_done}/{n_all}</small>", unsafe_allow_html=True)
+            group = g
+        with st.container(border=True, gap="small"):
+            # 標題與「看這頁」同一列（horizontal 容器在手機上不會被拆成上下兩排）
+            row = st.container(horizontal=True, vertical_alignment="center", horizontal_alignment="distribute", wrap=False)
+            row.markdown(f"**{item}**")
+            if page_href and row.button("看這頁", key=f"fb_look_{k}", type="tertiary", icon=":material/visibility:"):
+                preview_dialog(k)
+            st.caption(hint)
+            st.session_state.setdefault(f"fb_ps_{k}", None if data[k]["status"] == "未看" else data[k]["status"])
+            st.segmented_control("狀態", ["可以", "要修改"], key=f"fb_ps_{k}", width="stretch",
+                                 label_visibility="collapsed", on_change=_save, args=(k, "status", f"fb_ps_{k}"))
+            # 問題類一定要寫；其他項選了「要修改」或已有意見才顯示意見欄
+            if g in ("待確認", "其他") or data[k]["status"] == "要修改" or data[k]["text"]:
+                st.session_state.setdefault(f"fb_pt_{k}", data[k]["text"])
+                st.text_area("意見", key=f"fb_pt_{k}", height=90, label_visibility="collapsed",
+                             placeholder="答案或要改的地方" if g in ("待確認", "其他") else "哪裡要改、想改成什麼樣子",
+                             on_change=_save, args=(k, "text", f"fb_pt_{k}"))
+    return reviewer
 
 
 with tab_fb:
     data = st.session_state.fb_data
-    phone = st.toggle("手機版面", value=is_phone_ua, key="fb_phone",
-                      help="手機開啟時預設打開：一次一項、頁面預覽收起來，按鈕比較好按。")
-
-    with st.expander("接著上次填（上傳檔案，或貼上寄出的信件內容）"):
-        st.file_uploader("上傳 v3-feedback.txt", type=["txt"], key="fb_upload", on_change=_load)
-        st.text_area("或貼上信件內容", key="fb_paste", height=120, placeholder="把寄出的反饋信全文貼在這裡")
-        st.button("讀回貼上的內容", on_click=_load_paste)
-        st.caption("只在這次瀏覽時讀取，不會存到伺服器。")
-    if msg := st.session_state.pop("fb_load_msg", None):
-        getattr(st, msg[0])(msg[1])
-
-    count = {x: sum(v["status"] == x for v in data.values()) for x in STATUS}
-    done = len(FEEDBACK_ITEMS) - count["未看"]
-    st.progress(done / len(FEEDBACK_ITEMS),
-                text=f"已看 {done} / {len(FEEDBACK_ITEMS)} 項　可以 {count['可以']}　要修改 {count['要修改']}　未看 {count['未看']}")
-
-    def tools() -> None:
-        """跳項與檢視切換。"""
-        st.selectbox(
-            "跳到項目",
-            range(len(FEEDBACK_ITEMS)),
-            key="fb_jump",
-            on_change=_jump,
-            format_func=lambda k: f"{k + 1}. 〔{FEEDBACK_ITEMS[k][0]}〕{FEEDBACK_ITEMS[k][1]}（{data[k]['status']}）",
-        )
-        st.button("跳到下一個未看", on_click=_next_open, disabled=count["未看"] == 0,
-                  icon=":material/skip_next:", width="stretch")
-
-    st.session_state.setdefault("fb_mode", "逐項填寫")
+    st.session_state.setdefault("fb_phone", is_phone_ua)
+    phone = st.session_state.fb_phone
     if phone:
-        # 手機：填寫區放最前面，跳項工具與總表放在下面
-        reviewer = st.text_input("填寫人", placeholder="例如：柏任", key="fb_reviewer")
-        mode = st.session_state.get("fb_mode") or "逐項填寫"
+        if msg := st.session_state.pop("fb_load_msg", None):
+            getattr(st, msg[0])(msg[1])
+        reviewer = phone_page(data)
     else:
+        st.toggle("手機版面", key="fb_phone", help="手機開啟時預設打開：一頁列出全部項目，按鈕比較好按。")
+
+        with st.expander("接著上次填（上傳檔案，或貼上寄出的信件內容）"):
+            st.file_uploader("上傳 v3-feedback.txt", type=["txt"], key="fb_upload", on_change=_load)
+            st.text_area("或貼上信件內容", key="fb_paste", height=120, placeholder="把寄出的反饋信全文貼在這裡")
+            st.button("讀回貼上的內容", on_click=_load_paste)
+            st.caption("只在這次瀏覽時讀取，不會存到伺服器。")
+        if msg := st.session_state.pop("fb_load_msg", None):
+            getattr(st, msg[0])(msg[1])
+
+        count = {x: sum(v["status"] == x for v in data.values()) for x in STATUS}
+        done = len(FEEDBACK_ITEMS) - count["未看"]
+        st.progress(done / len(FEEDBACK_ITEMS),
+                    text=f"已看 {done} / {len(FEEDBACK_ITEMS)} 項　可以 {count['可以']}　要修改 {count['要修改']}　未看 {count['未看']}")
+
+        def tools() -> None:
+            """跳項與檢視切換。"""
+            st.selectbox(
+                "跳到項目",
+                range(len(FEEDBACK_ITEMS)),
+                key="fb_jump",
+                on_change=_jump,
+                format_func=lambda k: f"{k + 1}. 〔{FEEDBACK_ITEMS[k][0]}〕{FEEDBACK_ITEMS[k][1]}（{data[k]['status']}）",
+            )
+            st.button("跳到下一個未看", on_click=_next_open, disabled=count["未看"] == 0,
+                      icon=":material/skip_next:", width="stretch")
+
+        st.session_state.setdefault("fb_mode", "逐項填寫")
         top1, top2 = st.columns([1, 2])
         reviewer = top1.text_input("填寫人", placeholder="例如：柏任", key="fb_reviewer")
         with top2:
             tools()
         mode = st.segmented_control("檢視", ["逐項填寫", "總表"], key="fb_mode", width="stretch")
 
-    if mode == "總表":
-        # 設計清單查核總表：點一列就切回逐項填寫並跳到該項
-        only_open = st.toggle("只看未完成（未看）", key="fb_only_open")
-        shown = [k for k in range(len(FEEDBACK_ITEMS)) if not only_open or data[k]["status"] == "未看"]
-        mark = {"未看": "⬜ 未看", "可以": "✅ 可以", "要修改": "✏️ 要修改"}
-        st.dataframe(
-            [{"#": k + 1, "項目": FEEDBACK_ITEMS[k][1], "狀態": mark[data[k]["status"]],
-              "意見": data[k]["text"].replace("\n", " ／ "), "分組": FEEDBACK_ITEMS[k][0]} for k in shown],
-            key="fb_table", on_select=lambda: _pick_from_table(shown), selection_mode="single-row",
-            hide_index=True, width="stretch", height=min(38 + 35 * len(shown), 1020),
-        )
-        st.caption("點任一列，就會切到那一項填寫。")
-    else:
-        k = st.session_state.fb_idx
-        if phone:
-            with st.container(border=True):
-                item_form(k, compact=True)
-            with st.expander("看這一頁"):
-                page_preview(k, phone=True)
+        if mode == "總表":
+            # 設計清單查核總表：點一列就切回逐項填寫並跳到該項
+            only_open = st.toggle("只看未完成（未看）", key="fb_only_open")
+            shown = [k for k in range(len(FEEDBACK_ITEMS)) if not only_open or data[k]["status"] == "未看"]
+            mark = {"未看": "⬜ 未看", "可以": "✅ 可以", "要修改": "✏️ 要修改"}
+            st.dataframe(
+                [{"#": k + 1, "項目": FEEDBACK_ITEMS[k][1], "狀態": mark[data[k]["status"]],
+                  "意見": data[k]["text"].replace("\n", " ／ "), "分組": FEEDBACK_ITEMS[k][0]} for k in shown],
+                key="fb_table", on_select=lambda: _pick_from_table(shown), selection_mode="single-row",
+                hide_index=True, width="stretch", height=min(38 + 35 * len(shown), 1020),
+            )
+            st.caption("點任一列，就會切到那一項填寫。")
         else:
+            k = st.session_state.fb_idx
             view, form = st.columns([3, 2], gap="large")
             with view:
-                page_preview(k, phone=False)
+                page_preview(k)
             with form:
-                item_form(k, compact=False)
-
-    if phone:
-        tools()
-        st.segmented_control("檢視", ["逐項填寫", "總表"], key="fb_mode", width="stretch")
+                item_form(k)
 
     # ---------- 備份：寄出、下載 ----------
     st.divider()
     st.subheader("備份")
-    st.caption("填寫內容只存在這個瀏覽器分頁，重新整理就會清空。每填幾項就寄出或下載一次；寄出的信件內容可以貼回「接著上次填」繼續。")
+    st.caption("填寫內容只存在這個頁面，重新整理就會清空。每填幾項就寄出一次；寄出的信件內容可以貼回「接著上次填」繼續。")
     text = feedback_text(reviewer)
     if smtp_ready():
         last = st.session_state.get("fb_sent_at", 0.0)
@@ -399,8 +430,17 @@ with tab_fb:
         st.caption("會打開手機或電腦的郵件 app，收件人與內容已帶好，按傳送即可。")
     st.download_button("下載 v3-feedback.txt", text.encode("utf-8"), file_name="v3-feedback.txt",
                        mime="text/plain", icon=":material/download:", width="stretch")
-    with st.expander("預覽內容"):
-        st.code(text, language=None)
+    if phone:
+        # 手機：不常用的放最下面，不占填寫區的版面
+        with st.expander("接著上次填（貼上寄出的信件內容）"):
+            st.text_area("信件內容", key="fb_paste", height=120, label_visibility="collapsed",
+                         placeholder="把寄出的反饋信全文貼在這裡")
+            st.button("讀回", on_click=_load_paste)
+            st.file_uploader("或上傳 v3-feedback.txt", type=["txt"], key="fb_upload", on_change=_load)
+        st.toggle("手機版面", key="fb_phone", help="關掉改用電腦版面：左邊看頁面、右邊一項一項填。")
+    else:
+        with st.expander("預覽內容"):
+            st.code(text, language=None)
 
 # ---------- 各版預覽 ----------
 with tab_view:
