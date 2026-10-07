@@ -105,6 +105,54 @@ def _jump() -> None:
     st.session_state.fb_idx = st.session_state.fb_jump
 
 
+def parse_feedback(raw: str) -> tuple[str, dict[int, dict[str, str]], int]:
+    """讀回 feedback_text 產生的 v3-feedback.txt，回傳（填寫人, 各項資料, 讀到的項目數）。
+    項目以（分組, 項目名稱）對應；檔案裡沒有的項目維持「未看」，認不得的行略過。"""
+    index = {(g, item): k for k, (g, item, _, _) in enumerate(FEEDBACK_ITEMS)}
+    data = {k: {"status": "未看", "text": ""} for k in range(len(FEEDBACK_ITEMS))}
+    reviewer, group, cur, found = "", None, None, 0
+    for line in raw.splitlines():
+        if line.startswith("填寫人："):
+            reviewer = line.removeprefix("填寫人：").strip()
+            reviewer = "" if reviewer == "（未填）" else reviewer
+        elif line.startswith("【") and line.endswith("】"):
+            group, cur = line[1:-1], None
+        elif line.startswith("- ") and "：" in line:
+            item, _, status = line[2:].rpartition("：")
+            cur = index.get((group, item))
+            if cur is not None and status in STATUS:
+                data[cur]["status"] = status
+                found += 1
+            else:
+                cur = None
+        elif line.startswith("    ") and cur is not None:
+            t = data[cur]["text"]
+            data[cur]["text"] = (t + "\n" if t else "") + line[4:]
+    return reviewer, data, found
+
+
+def _load() -> None:
+    """上傳之前下載的 v3-feedback.txt，接著填。"""
+    f = st.session_state.get("fb_upload")
+    if f is None:
+        return
+    try:
+        reviewer, data, found = parse_feedback(f.getvalue().decode("utf-8"))
+    except UnicodeDecodeError:
+        st.session_state.fb_load_msg = ("error", "讀不到內容：檔案不是 UTF-8 文字檔，請上傳這個 app 下載的 v3-feedback.txt。")
+        return
+    if found == 0:
+        st.session_state.fb_load_msg = ("error", "檔案裡沒有可以對應的項目，請上傳這個 app 下載的 v3-feedback.txt。")
+        return
+    st.session_state.fb_data = data
+    st.session_state.fb_reviewer = reviewer
+    for key in [x for x in st.session_state if str(x).startswith(("fb_s_", "fb_t_"))]:
+        del st.session_state[key]  # 讓目前這一項的元件改用讀回來的內容
+    first = next((k for k, v in data.items() if v["status"] == "未看"), 0)
+    _go(first)
+    st.session_state.fb_load_msg = ("success", f"已讀回 {found} 項，從第 {first + 1} 項（第一個未看的）接著填。")
+
+
 def feedback_text(reviewer: str) -> str:
     """把目前填的反饋整理成純文字（v3-feedback.txt 的內容）。"""
     now = datetime.now(ZoneInfo("Asia/Taipei")).strftime("%Y-%m-%d %H:%M")
@@ -136,6 +184,11 @@ tab_fb, tab_view = st.tabs(["v3 逐項反饋", "各版預覽"])
 
 # ---------- v3 逐項反饋：左邊看頁面、右邊填意見，一次一項，不用另開視窗 ----------
 with tab_fb:
+    with st.expander("接著上次填：上傳之前下載的 v3-feedback.txt"):
+        st.file_uploader("v3-feedback.txt", type=["txt"], key="fb_upload", on_change=_load, label_visibility="collapsed")
+        st.caption("檔案只在這次瀏覽時讀取，不會存到伺服器。")
+    if msg := st.session_state.pop("fb_load_msg", None):
+        getattr(st, msg[0])(msg[1])
     data = st.session_state.fb_data
     top1, top2 = st.columns([1, 2])
     reviewer = top1.text_input("填寫人", placeholder="例如：Paul", key="fb_reviewer")
@@ -165,12 +218,15 @@ with tab_fb:
         st.caption(f"{k + 1} / {len(FEEDBACK_ITEMS)}　{group}")
         st.subheader(item)
         st.write(hint)
+        # 元件的值由 session_state 決定：第一次顯示這一項時從 fb_data 帶入
+        st.session_state.setdefault(f"fb_s_{k}", data[k]["status"])
+        st.session_state.setdefault(f"fb_t_{k}", data[k]["text"])
         st.radio(
             "狀態", STATUS, key=f"fb_s_{k}", horizontal=True,
-            index=STATUS.index(data[k]["status"]), on_change=_save, args=(k, "status", f"fb_s_{k}"),
+            on_change=_save, args=(k, "status", f"fb_s_{k}"),
         )
         st.text_area(
-            "意見", key=f"fb_t_{k}", height=200, value=data[k]["text"],
+            "意見", key=f"fb_t_{k}", height=200,
             on_change=_save, args=(k, "text", f"fb_t_{k}"), placeholder="哪裡要改、想改成什麼樣子",
         )
         b1, b2 = st.columns(2)
@@ -179,7 +235,7 @@ with tab_fb:
                   type="primary", use_container_width=True)
 
     st.divider()
-    st.warning("填寫內容只存在這個瀏覽器分頁，重新整理或關閉分頁就會清空，填完請下載。")
+    st.warning("填寫內容只存在這個瀏覽器分頁，重新整理或關閉分頁就會清空。要暫存就先下載，下次從上方「接著上次填」上傳回來。")
     text = feedback_text(reviewer)
     st.download_button("下載 v3-feedback.txt", text.encode("utf-8"), file_name="v3-feedback.txt",
                        mime="text/plain", type="primary", icon=":material/download:")
