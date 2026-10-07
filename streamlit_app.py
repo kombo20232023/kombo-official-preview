@@ -36,8 +36,24 @@ VERSIONS = {
     "v3（審閱中，照李寧結構）": "v3",
     "v2（照 VICTOR 與李寧結構）": "v2",
     "v1（已取代）": "v1",
+    "後台 admin-v1（第二版以後）": "admin-v1",
 }
 SIZES = {"手機 390": (390, 780), "平板 820": (820, 900), "電腦 1280": (1280, 820)}
+
+# 後台設計稿 admin-v1 的畫面（架構見 specs/003-技術規格/009）
+ADMIN_PAGES = [
+    ("封面", "index.html", "後台設計稿的畫面清單與待決定事項"),
+    ("儀表板", "dashboard.html", "草稿未上架數、待處理問題、常用操作"),
+    ("全站佈局", "site.html", "公告條、主導覽、頁尾；右邊即時預覽"),
+    ("首頁版面", "layout.html", "所見即所得：在真實頁面上點區塊編輯"),
+    ("SEO 與 AI 搜尋", "seo.html", "AI 爬蟲政策；自動產生 robots.txt、sitemap、llms.txt、結構化資料"),
+    ("商品", "products.html", "列表與上下架"),
+    ("編輯商品", "product.html#no-3a", "價格、球速、圖片替代文字、通路、SEO、常見問題，右邊即時預覽"),
+    ("連結", "links.html", "通路與社群網址只設定一次"),
+    ("媒體庫", "media.html", "上傳、用途追蹤、未使用清理"),
+    ("發布", "publish.html", "上架前檢查、差異、上架與還原"),
+    ("資料架構", "data.html", "資料庫平台比較、資料表、圖片上傳與上架流程"),
+]
 
 # v3 逐項反饋的項目：(分組, 項目, 要看什麼, 對應頁面；None 表示沒有對應頁面的問題)
 FEEDBACK_ITEMS = [
@@ -450,7 +466,8 @@ with tab_view:
     clean = c3.toggle("隱藏待確認標記", value=False)
 
     # 只列這一版實際有的頁面（v1 只有 6 頁）
-    pages = [p for p in PAGES if (STATIC / version / p[1].split("#")[0]).is_file()]
+    source = ADMIN_PAGES if version == "admin-v1" else PAGES
+    pages = [p for p in source if (STATIC / version / p[1].split("#")[0]).is_file()]
     name = st.radio("頁面", [p[0] for p in pages], horizontal=True)
     _, href, note = next(p for p in pages if p[0] == name)
 

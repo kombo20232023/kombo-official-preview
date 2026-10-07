@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KOMBO 後台設計稿 admin-v1</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="../v3/assets/favicon.ico">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/admin.css?v=20261008">
+<style>
+  .cover { max-width: 980px; margin: 0 auto; padding: 32px 16px 64px; display: grid; gap: 20px; }
+  .cover h1 { font-size: 1.75rem; }
+  .screens { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+  .screens li { display: grid; grid-template-columns: 9em 1fr auto; gap: 12px; align-items: center; padding: 12px 14px; background: #fff; border: 1px solid var(--rule); border-radius: 8px; }
+  @media (max-width: 640px) { .screens li { grid-template-columns: 1fr; gap: 4px; } }
+</style>
+</head>
+<body>
+<main class="cover">
+  <header>
+    <p class="dim">2026-10-08　狀態：審閱中　範圍：第二版以後（第一版是純 DM，不含後台）</p>
+    <h1>KOMBO 後台設計稿 admin-v1</h1>
+    <p style="margin-top:8px">業主自己改公告、首頁區塊、商品與價格、通路連結、圖片與 SEO；<b>先存草稿，按「上架」才更新正式網站</b>，每次上架都能還原。</p>
+  </header>
+  <section class="panel"><header><h2>畫面</h2><span class="small dim">可以實際操作；修改只存在你的瀏覽器</span></header>
+    <ul class="screens">
+      <li><b>儀表板</b><span class="dim">草稿未上架數、待處理問題、常用操作</span><a class="btn" href="dashboard.html">開啟</a></li>
+      <li><b>全站佈局</b><span class="dim">公告條、主導覽順序、頁尾；右邊即時預覽</span><a class="btn" href="site.html">開啟</a></li>
+      <li><b>首頁版面</b><span class="dim">所見即所得：在真實頁面上點區塊，排順序、開關、改標題與數量</span><a class="btn" href="layout.html">開啟</a></li>
+      <li><b>SEO 與 AI 搜尋</b><span class="dim">全站描述、分享圖、AI 爬蟲政策；自動產生 robots.txt、sitemap、llms.txt、結構化資料</span><a class="btn" href="seo.html">開啟</a></li>
+      <li><b>商品</b><span class="dim">列表、上下架；編輯頁含價格、球速、圖片替代文字、通路、SEO、常見問題，右邊即時預覽商品頁</span><a class="btn" href="products.html">開啟</a></li>
+      <li><b>連結</b><span class="dim">通路、LINE、社群網址只設定一次，全站引用</span><a class="btn" href="links.html">開啟</a></li>
+      <li><b>媒體庫</b><span class="dim">上傳（替代文字必填）、用途追蹤、未使用清理、使用中不能刪</span><a class="btn" href="media.html">開啟</a></li>
+      <li><b>發布</b><span class="dim">上架前檢查、草稿與正式站差異、上架、上架紀錄與還原</span><a class="btn" href="publish.html">開啟</a></li>
+      <li><b>資料架構</b><span class="dim">資料庫平台比較（Supabase／Cloudflare）、15 張資料表、圖片上傳與上架流程</span><a class="btn" href="data.html">開啟</a></li>
+    </ul>
+  </section>
+  <section class="panel"><header><h2>需要您決定</h2></header>
+    <ol style="margin:0;padding-left:20px;display:grid;gap:6px">
+      <li>資料庫平台：Supabase（另開專案，Pro 約每月 25 美元，不會暫停）或 Cloudflare（預期免費）。</li>
+      <li>後台要不要在第二版就做，或先維持第一版純 DM。</li>
+      <li>誰是「發布者」（可上架與還原），誰只是「編輯」。</li>
+    </ol>
+  </section>
+  <p class="note">架構與規則見 <span class="mono">specs/003-技術規格/009-admin-config-architecture.md</span>。正式後台的資料存在資料庫，這份設計稿用瀏覽器暫存示意。</p>
+</main>
+</body>
+</html>
