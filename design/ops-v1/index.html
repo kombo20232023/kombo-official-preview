@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KOMBO 營運成本估計（設計稿）</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="../v3/assets/favicon.ico">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../admin-v1/assets/admin.css?v=20261008">
+<style>
+  .sheet { max-width: 1080px; margin: 0 auto; padding: 28px 16px 64px; display: grid; gap: 18px; }
+  .sheet h1 { font-size: 1.625rem; }
+  .controls { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+  tr.site td { background: #F4F6F9; font-weight: 700; color: var(--navy-deep); }
+  .layer { display: inline-block; padding: 1px 8px; border-radius: 4px; font-size: 0.75rem; white-space: nowrap; }
+  .front { background: #E6F0FB; color: #1B4C9B; } .back { background: #EFEAFB; color: #6B4FBB; } .shared { background: #FFF4DB; color: #8A4B00; }
+  td.n, th.n { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .src li { margin: 2px 0; }
+  @media (max-width: 860px) { .controls { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 520px) { .controls { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main class="sheet">
+  <header>
+    <p class="dim">設計稿　2026-10-08　依公開牌價整理，不含開發與維護工時</p>
+    <h1>KOMBO 營運成本估計</h1>
+    <p style="margin-top:6px">官方網站（前台、後台）、庫存系統、設計稿預覽，每月要付給平台的費用。上方選項改了，下方金額即時更新。</p>
+  </header>
+
+  <section class="panel">
+    <div class="controls">
+      <label class="field"><span>網站主機</span>
+        <select id="host">
+          <option value="free">免費託管（官網 Cloudflare Pages，其他 Streamlit）</option>
+          <option value="vm1">一台 VM 共用（DigitalOcean 2 GB）</option>
+          <option value="vmEach">每個系統一台 VM（DigitalOcean 1 GB）</option>
+        </select></label>
+      <label class="field"><span>資料庫（Supabase）</span>
+        <select id="db">
+          <option value="free">免費方案（閒置 7 天暫停）</option>
+          <option value="proShared" selected>Pro，庫存與官網同組織各一專案</option>
+          <option value="proSite">Pro 只給官網，庫存維持免費</option>
+        </select></label>
+      <label class="field"><span>網域</span>
+        <select id="domain">
+          <option value="tw">.tw（Gandi，NT$744／年）</option>
+          <option value="com">.com（Cloudflare，US$10.46／年）</option>
+          <option value="none">暫不買網域</option>
+        </select></label>
+      <label class="field"><span>匯率：1 美元＝幾元</span><input id="fx" type="number" value="32" min="1" step="0.5"></label>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="table-wrap"><table class="list" id="t">
+      <thead><tr><th>系統</th><th>層</th><th>項目</th><th>服務與方案（公開牌價）</th><th class="n">月費（元）</th><th class="n">年費（元）</th></tr></thead>
+      <tbody></tbody>
+    </table></div>
+  </section>
+
+  <div class="stats">
+    <div class="stat"><span class="dim small">官方網站</span><b id="s-site"></b><span class="small dim" id="y-site"></span></div>
+    <div class="stat"><span class="dim small">庫存系統</span><b id="s-inv"></b><span class="small dim" id="y-inv"></span></div>
+    <div class="stat"><span class="dim small">設計稿預覽</span><b id="s-pre"></b><span class="small dim" id="y-pre"></span></div>
+    <div class="stat"><span class="dim small">合計</span><b id="s-all" style="color:var(--vermilion)"></b><span class="small dim" id="y-all"></span></div>
+  </div>
+
+  <div class="grid2">
+    <section class="panel"><header><h2>怎麼選</h2></header>
+      <ul style="margin:0;padding-left:20px;display:grid;gap:6px">
+        <li><b>主機</b>：官網是靜態頁，免費託管就夠；VM 適合要自己控制環境或不想受免費方案限制時，但要另外負責系統更新與備份。</li>
+        <li><b>資料庫</b>：免費方案閒置 7 天會暫停，業主一段時間沒用，後台與庫存系統要先手動恢復。Pro 組織共用時，一份 25 美元涵蓋第一個專案，第二個專案另加 10 美元，<b>兩個系統都不會暫停</b>，資料仍各自獨立。</li>
+        <li><b>網域</b>：.tw 較符合台灣品牌；.com 在 Cloudflare 以成本價註冊。DNS 都用 Cloudflare 免費方案。</li>
+      </ul>
+    </section>
+    <section class="panel"><header><h2>不在估計內</h2></header>
+      <ul style="margin:0;padding-left:20px;display:grid;gap:6px">
+        <li>開發、維護、內容更新的工時（另報價）</li>
+        <li>商品攝影、主視覺製作、廣告投放</li>
+        <li>超出方案額度的用量（目前規模遠低於額度，見下方）</li>
+      </ul>
+    </section>
+  </div>
+
+  <section class="panel"><header><h2>價格來源（2026-10-08 查詢）</h2></header>
+    <ul class="src small" style="margin:0;padding-left:20px">
+      <li>Supabase（<a href="https://supabase.com/pricing" target="_blank" rel="noopener">supabase.com/pricing</a>）：免費方案每組織 2 個專案、資料庫 500 MB、檔案 1 GB、流量 5 GB，閒置 1 週暫停；Pro 25 美元／月起，含 10 美元運算額度（一個 Micro），每多一個 Micro 專案 10 美元；每專案含資料庫 8 GB、檔案 100 GB、流量 250 GB、縮圖 100 張原圖。</li>
+      <li>DigitalOcean Basic Droplet（<a href="https://www.digitalocean.com/pricing/droplets" target="_blank" rel="noopener">digitalocean.com/pricing/droplets</a>）：512 MiB 4 美元、1 GB 6 美元、2 GB 12 美元（每月）。</li>
+      <li>Streamlit Community Cloud（<a href="https://streamlit.io/cloud" target="_blank" rel="noopener">streamlit.io/cloud</a>）：免費，只能公開 app；每個工作區 1 個私有 app（實際部署時遇到的限制）。</li>
+      <li>Cloudflare Registrar：.com 註冊與續約 10.46 美元／年（<a href="https://cfdomainpricing.com/" target="_blank" rel="noopener">cfdomainpricing.com</a>，2026-10-07 更新），不加價，含免費 DNS；不提供 .tw。</li>
+      <li>.tw：Gandi 台灣價 NT$744／年（含稅）。此價格取自搜尋結果，未開啟 Gandi 官網頁面核對；其他台灣註冊商（中華電信、PChome 等）價格不同，購買前比價。</li>
+      <li>Cloudflare Pages：官網靜態頁託管免費（ADR-001 選定的平台）。</li>
+    </ul>
+    <p class="note" style="margin-top:10px">牌價會變動，正式報價前再查一次；美元費用依匯率換算，實際以信用卡帳單為準。</p>
+  </section>
+</main>
+<script>
+(function () {
+  const $ = (s) => document.querySelector(s);
+  const fmt = (n) => Math.round(n).toLocaleString('zh-TW');
+  function rows(host, db, domain, fx) {
+    const usd = (n) => n * fx;
+    const domMonthly = (domain === 'tw' ? 744 : domain === 'com' ? usd(10.46) : 0) / 12;
+    const domName = domain === 'tw' ? '.tw 網域（Gandi）' : domain === 'com' ? '.com 網域（Cloudflare Registrar）' : '暫不購買（用免費子網域）';
+    // 主機
+    const H = {
+      free: { site: ['Cloudflare Pages 免費', 0], admin: ['Cloudflare Pages Functions 免費額度', 0], inv: ['Streamlit Community Cloud 免費', 0], pre: ['Streamlit Community Cloud 免費', 0] },
+      vm1: { site: ['DigitalOcean 2 GB 一台（官網前後台與庫存共用）', usd(12)], admin: ['同上 VM', 0], inv: ['同上 VM', 0], pre: ['Streamlit Community Cloud 免費', 0] },
+      vmEach: { site: ['DigitalOcean 1 GB（官網前後台）', usd(6)], admin: ['同上 VM', 0], inv: ['DigitalOcean 1 GB（庫存系統）', usd(6)], pre: ['Streamlit Community Cloud 免費', 0] }
+    }[host];
+    // 資料庫：[官網, 庫存]
+    const D = {
+      free: [['Supabase 免費（官網專案）', 0], ['Supabase 免費（庫存專案）', 0]],
+      proShared: [['Supabase Pro 同組織第二個專案（Micro）', usd(10)], ['Supabase Pro 組織月費（含第一個專案）', usd(25)]],
+      proSite: [['Supabase Pro（官網專用組織）', usd(25)], ['Supabase 免費（閒置 7 天暫停）', 0]]
+    }[db];
+    return [
+      ['官方網站'],
+      ['官方網站', 'front', '網站主機', ...H.site],
+      ['官方網站', 'front', '網域', domName, domMonthly],
+      ['官方網站', 'front', 'DNS', 'Cloudflare DNS 免費', 0],
+      ['官方網站', 'back', '後台程式與登入', H.admin[0] + '；登入用 Supabase Auth（含在方案）', H.admin[1]],
+      ['官方網站', 'shared', '資料庫與圖片儲存（前台建置讀、後台寫）', ...D[0]],
+      ['庫存系統'],
+      ['庫存系統', 'front', '網站（操作介面與後端在同一個 app）', ...H.inv],
+      ['庫存系統', 'shared', '資料庫', ...D[1]],
+      ['設計稿預覽'],
+      ['設計稿預覽', 'front', '預覽與反饋 app', ...H.pre],
+      ['設計稿預覽', 'back', '反饋寄信', 'Gmail SMTP 免費', 0]
+    ];
+  }
+  const LAYER = { front: ['front', '前台'], back: ['back', '後台'], shared: ['shared', '共用'] };
+  function render() {
+    const fx = Math.max(1, +$('#fx').value || 32);
+    const sum = { '官方網站': 0, '庫存系統': 0, '設計稿預覽': 0 };
+    $('#t tbody').innerHTML = rows($('#host').value, $('#db').value, $('#domain').value, fx).map((r) => {
+      if (r.length === 1) return `<tr class="site"><td colspan="6">${r[0]}</td></tr>`;
+      sum[r[0]] += r[4];
+      const [c, t] = LAYER[r[1]];
+      return `<tr><td></td><td><span class="layer ${c}">${t}</span></td><td>${r[2]}</td><td>${r[3]}</td><td class="n">${fmt(r[4])}</td><td class="n">${fmt(r[4] * 12)}</td></tr>`;
+    }).join('');
+    const set = (k, v) => { $(`#s-${k}`).textContent = `NT$${fmt(v)}／月`; $(`#y-${k}`).textContent = `約 NT$${fmt(v * 12)}／年`; };
+    set('site', sum['官方網站']); set('inv', sum['庫存系統']); set('pre', sum['設計稿預覽']);
+    set('all', sum['官方網站'] + sum['庫存系統'] + sum['設計稿預覽']);
+  }
+  ['host', 'db', 'domain', 'fx'].forEach((id) => $(`#${id}`).addEventListener('input', render));
+  render();
+})();
+</script>
+</body>
+</html>

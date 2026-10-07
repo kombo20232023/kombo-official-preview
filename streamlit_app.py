@@ -280,7 +280,7 @@ else:
     st.title("KOMBO 官網設計稿")
     st.caption("頁面是設計稿原檔，連結、輪播、選單都可以實際操作。官網不收單，按鈕連到的通路與 LINE 是實際連結。")
 
-tab_fb, tab_view = st.tabs(["v3 逐項反饋", "各版預覽"])
+tab_fb, tab_view, tab_cost = st.tabs(["v3 逐項反饋", "各版預覽", "營運成本"])
 
 # ---------- v3 逐項反饋 ----------
 # 手機：一頁捲到底的清單（phone_page）；電腦：左邊看頁面、右邊一項一項填。
@@ -479,3 +479,7 @@ with tab_view:
     w, h = SIZES[size or "手機 390"]
     st.iframe(url, width=w, height=h)
     st.caption("「待確認」黃色標記是設計稿專用，正式網站不會出現。")
+
+# ---------- 營運成本（設計稿：依公開牌價，不含工時與報價） ----------
+with tab_cost:
+    st.iframe(static_url("ops-v1/index.html"), width="stretch", height=1400)
