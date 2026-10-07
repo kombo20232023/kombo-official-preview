@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KOMBO 官網設計稿 v2</title>
+<link rel="icon" href="assets/favicon.ico">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght@1,900&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/site.css">
+<style>
+  .cover { padding: 56px 0 24px; border-bottom: 2px solid var(--navy-deep); }
+  .cover .ver { font: italic 900 1rem/1 var(--font-display); color: var(--vermilion); }
+  .cover h1 { margin-top: 8px; }
+  .meta-row { display: flex; flex-wrap: wrap; gap: 8px 28px; margin-top: 16px; color: var(--ink-dim); font-size: .9375rem; }
+  .pages { list-style: none; margin: 0; padding: 0; }
+  .pages li { display: grid; grid-template-columns: 9em 1fr auto; gap: 24px; align-items: center; padding: 18px 0; border-bottom: 1px solid var(--rule); }
+  .pages .views { display: flex; gap: 8px; flex-wrap: wrap; }
+  .pages .views .btn { min-height: 40px; padding: 0 14px; font-size: .9375rem; }
+  .viewer { margin-top: 32px; display: none; }
+  .viewer.on { display: block; }
+  .viewer-bar { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 12px; flex-wrap: wrap; }
+  .frame { margin: 0 auto; background: #fff; border: 1px solid var(--rule); border-radius: 18px; overflow: hidden; box-shadow: 0 20px 40px rgba(20,49,95,.12); }
+  .frame iframe { display: block; border: 0; width: 100%; height: 100%; }
+  .qs { list-style: none; margin: 0; padding: 0; counter-reset: q; }
+  .qs li { padding: 14px 0; border-bottom: 1px solid var(--rule); display: grid; grid-template-columns: 3.5em 1fr; gap: 12px; }
+  .qs b.id { font: italic 900 1rem/1.8 var(--font-display); color: var(--navy); }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; }
+  @media (max-width: 860px) { .two { grid-template-columns: 1fr; gap: 0; } .pages li { grid-template-columns: 1fr; gap: 8px; } }
+</style>
+</head>
+<body>
+<main class="wrap" id="main">
+  <header class="cover">
+    <p class="ver">v2　設計稿</p>
+    <h1>KOMBO 官方網站</h1>
+    <div class="meta-row"><span>2026-10-02</span><span>狀態：審閱中</span><span>範圍：第一版（品牌 DM 網站）</span><span>結構：照 VICTOR 與李寧官網</span></div>
+  </header>
+
+  <section class="section tight">
+    <div class="section-head"><h2>頁面</h2>
+      <label style="font-size:.9375rem"><input type="checkbox" id="clean"> 隱藏「待確認」標記，看接近上線的樣子</label></div>
+    <ul class="pages" id="pages">
+      <li><b>首頁</b><span class="dim">主視覺輪播 3 張、系列主題橫幅、商品分類入口、最新消息</span><span class="views" data-href="home.html"></span></li>
+      <li><b>羽毛球列表</b><span class="dim">子分類（材質）、商品數、價格排序</span><span class="views" data-href="shuttlecock.html"></span></li>
+      <li><b>羽毛球列表（天然鵝毛）</b><span class="dim">點子分類後的樣子</span><span class="views" data-href="shuttlecock.html#goose"></span></li>
+      <li><b>配件列表</b><span class="dim">與羽毛球同一個版型</span><span class="views" data-href="accessories.html"></span></li>
+      <li><b>商品頁</b><span class="dim">以 No.3A 為例：圖庫、規格條列、球速選項、購買通路、分頁、相關商品</span><span class="views" data-href="product.html#no-3a"></span></li>
+      <li><b>商品頁（深色款）</b><span class="dim">以 No.D 為例</span><span class="views" data-href="product.html#no-d"></span></li>
+      <li><b>銷售通路</b><span class="dim">對應兩家的經銷據點頁：類型篩選與清單、LINE</span><span class="views" data-href="where-to-buy.html"></span></li>
+      <li><b>最新消息</b><span class="dim">列表（內容為版面示意）</span><span class="views" data-href="news.html"></span></li>
+      <li><b>消息文章</b><span class="dim">文章頁</span><span class="views" data-href="news-article.html#site-launch"></span></li>
+      <li><b>聯絡我們</b><span class="dim">依問題類別導到 LINE</span><span class="views" data-href="contact.html"></span></li>
+      <li><b>品牌故事</b><span class="dim">品牌官方文案原文</span><span class="views" data-href="about.html"></span></li>
+      <li><b>型錄下載</b><span class="dim">DM 型錄 PDF</span><span class="views" data-href="catalog-download.html"></span></li>
+      <li><b>找不到頁面</b><span class="dim">網址錯誤時顯示</span><span class="views" data-href="404.html"></span></li>
+    </ul>
+    <div class="viewer" id="viewer">
+      <div class="viewer-bar"><b id="viewer-title"></b><button class="btn ghost" type="button" id="close" style="min-height:40px">關閉預覽</button></div>
+      <div class="frame" id="frame"><iframe id="iframe" title="頁面預覽"></iframe></div>
+    </div>
+  </section>
+
+  <div class="two">
+    <section class="section">
+      <h2>這一版的設計方向</h2>
+      <p style="margin-top:12px"><b>結構照 VICTOR 與李寧，視覺是 KOMBO 自己的。</b></p>
+      <table class="materials" style="margin-top:12px"><tbody>
+        <tr><th scope="row">導覽</th><td>依商品分類：最新消息、羽毛球、配件、品牌故事、銷售通路、聯絡我們（照 VICTOR）</td></tr>
+        <tr><th scope="row">首頁</th><td>主視覺輪播、主題橫幅、商品分類、最新消息（兩家相同的順序）</td></tr>
+        <tr><th scope="row">列表</th><td>子分類、商品數、排序（兩家皆有）</td></tr>
+        <tr><th scope="row">商品頁</th><td>欄位與分頁照 VICTOR；規格條列照李寧；購買按鈕改為導到各通路</td></tr>
+        <tr><th scope="row">通路頁</th><td>照兩家的經銷據點頁：類型篩選與清單</td></tr>
+        <tr><th scope="row">不做</th><td>代言選手、購物車與會員、站內搜尋、常見問題</td></tr>
+      </tbody></table>
+      <p style="margin-top:16px">避免聯想：顏色、字體、K 字標與九支球桶都取自 KOMBO 包裝；不使用兩家的標誌、配色、選手或素材。</p>
+    </section>
+    <section class="section">
+      <h2>需要您確認</h2>
+      <ol class="qs" style="margin-top:8px">
+        <li><b class="id">Q-1</b><span>「商店資訊」只有線上通路，還是也有實體店、經銷商或球館要列？</span></li>
+        <li><b class="id">Q-2</b><span>型錄與產品頁要不要顯示價格？目前價格是 9/18 從賣貨便查到的。</span></li>
+        <li><b class="id">Q-3</b><span>產品清單是否正確？No.5+ 的售價、每桶顆數、球頭材質、每款一句話說明需要補上。</span></li>
+        <li><b class="id">Q-4</b><span>每一款在蝦皮的商品網址，以及全家好賣+ 的賣場網址。</span></li>
+        <li><b class="id">Q-8</b><span>能否提供各款球的高解析度照片？現有單品圖寬度只有 110 像素，電腦版產品頁會不夠清楚。</span></li>
+        <li><b class="id">Q-9</b><span>最新消息由誰提供？上線至少要 3 則。</span></li>
+        <li><b class="id">Q-10</b><span>是否已有 DM 型錄的 PDF？</span></li>
+        <li><b class="id">文案</b><span>材質說明與首頁介紹文字是草稿，品牌官方文案則逐字未改。</span></li>
+      </ol>
+    </section>
+  </div>
+  <p class="dim" style="margin:48px 0 64px;font-size:.875rem">設計稿中的通路與 LINE 連結是實際連結；標示「待確認」的連結尚未取得正確網址。</p>
+</main>
+<script>
+  const clean = document.getElementById('clean');
+  const viewer = document.getElementById('viewer');
+  const iframe = document.getElementById('iframe');
+  const frame = document.getElementById('frame');
+  const sizes = { 手機: [390, 780], 平板: [820, 900], 電腦: [1280, 820] };
+  document.querySelectorAll('.views').forEach((v) => {
+    Object.entries(sizes).forEach(([label, [w, h]]) => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'btn ghost'; b.textContent = label;
+      b.addEventListener('click', () => {
+        const href = v.dataset.href;
+        const scale = Math.min(1, (document.querySelector('main').clientWidth) / w);
+        frame.style.width = w * scale + 'px'; frame.style.height = h * scale + 'px';
+        iframe.style.width = w + 'px'; iframe.style.height = h + 'px';
+        iframe.style.transform = `scale(${scale})`; iframe.style.transformOrigin = '0 0';
+        iframe.src = href;
+        document.getElementById('viewer-title').textContent = `${v.closest('li').querySelector('b').textContent}（${label} ${w}px）`;
+        viewer.classList.add('on'); viewer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+      v.append(b);
+    });
+    const a = document.createElement('a');
+    a.className = 'btn'; a.textContent = '開新分頁'; a.target = '_blank'; a.rel = 'noopener';
+    a.href = v.dataset.href; v.append(a);
+  });
+  try { clean.checked = localStorage.getItem('kombo-clean') === '1'; } catch (e) {}
+  clean.addEventListener('change', () => {
+    try { localStorage.setItem('kombo-clean', clean.checked ? '1' : '0'); } catch (e) {}
+    if (iframe.src && iframe.src !== 'about:blank') iframe.contentWindow.location.reload();
+  });
+  document.getElementById('close').addEventListener('click', () => { viewer.classList.remove('on'); iframe.src = 'about:blank'; });
+</script>
+</body>
+</html>

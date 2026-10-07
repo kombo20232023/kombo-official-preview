@@ -1,0 +1,2 @@
+# 設計稿預覽 app（streamlit_app.py）用。固定版本：已在 1.64.0 驗證 /app/static/ 的 HTML 以 text/html 提供，其他版本未驗證
+streamlit==1.64.0

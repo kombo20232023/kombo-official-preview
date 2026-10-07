@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KOMBO 慷柏體育 — 羽毛球</title>
+<meta name="description" content="KOMBO 九款羽毛球，天然鵝毛、鵝毛拉直、刺骨鴨、鴨毛四種材質。">
+<meta property="og:title" content="KOMBO 慷柏體育 — 羽毛球">
+<meta property="og:description" content="KOMBO 九款羽毛球，天然鵝毛、鵝毛拉直、刺骨鴨、鴨毛四種材質。">
+<meta property="og:image" content="assets/og-lineup.jpg">
+<link rel="icon" href="assets/favicon.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,700;0,800;1,800;1,900&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/site.css">
+</head>
+<body data-page="home">
+<!-- v3：區塊順序照李寧首頁（specs/001-需求文件/研究/2026-10-07-lining-checklist.md A6）：
+     滿版主輪播 → 系列海報 → 標語 → 商品格 → 分類入口 → 單張橫幅 → 最新消息 -->
+<main id="main">
+  <section class="carousel" data-render="carousel" aria-label="主視覺"></section>
+  <section class="band-sec"><div class="wide" data-render="posters"></div></section>
+  <p class="tagline">一拍接著一拍</p>
+  <section class="band-sec"><div class="wrap">
+    <h2 class="st"><span>全系列羽毛球</span></h2>
+    <div data-render="lineup"></div>
+  </div></section>
+  <section class="band-sec"><div class="wrap">
+    <h2 class="st"><span>依材質選球</span></h2>
+    <div data-render="mats"></div>
+  </div></section>
+  <section class="band-sec"><div class="wide" data-render="wherebanner"></div></section>
+  <section class="band-sec"><div class="wrap">
+    <h2 class="st"><span>最新消息</span></h2>
+    <div data-render="news" data-limit="3"></div>
+  </div></section>
+</main>
+<script src="assets/data.js"></script>
+<script src="assets/site.js"></script>
+</body>
+</html>

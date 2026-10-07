@@ -1,0 +1,208 @@
+"""KOMBO 官網設計稿預覽（獨立的 Streamlit app，和庫存系統無關）。
+
+設計稿是 design/ 底下的靜態 HTML。根目錄的 static 是指向 design 的連結，
+開啟 .streamlit/config.toml 的 enableStaticServing 後，Streamlit 以 /app/static/ 網址
+原封不動提供這些檔案，所以這裡看到的頁面和本機用 http.server 開的完全相同。
+
+本機執行（在 repo 根目錄）：
+    streamlit run streamlit_app.py
+"""
+
+from datetime import datetime
+from pathlib import Path
+from urllib.parse import urljoin
+from zoneinfo import ZoneInfo
+
+import streamlit as st
+
+STATIC = Path(__file__).parent / "static"
+
+# 每一版的頁面清單：(名稱, 檔名#錨點, 說明)
+PAGES = [
+    ("首頁", "home.html", "滿版主輪播、系列海報、商品格、材質入口、通路橫幅、最新消息"),
+    ("羽毛球列表", "shuttlecock.html", "電腦版左側材質側欄＋3 欄；手機版橫滑分類＋2 欄"),
+    ("羽毛球列表（天然鵝毛）", "shuttlecock.html#goose", "點材質後的樣子"),
+    ("配件列表", "accessories.html", "與羽毛球同一個版型"),
+    ("商品頁 No.3A", "product.html#no-3a", "圖庫、規格條列、球速、購買通路、分頁、相關商品"),
+    ("商品頁 No.D（深色款）", "product.html#no-d", "深色球桶的配色"),
+    ("銷售通路", "where-to-buy.html", "通路類型篩選與清單、LINE"),
+    ("最新消息", "news.html", "列表（內容為版面示意）"),
+    ("聯絡我們", "contact.html", "依問題類別導到 LINE"),
+    ("品牌故事", "about.html", "品牌官方文案原文"),
+    ("型錄下載", "catalog-download.html", "DM 型錄 PDF"),
+    ("找不到頁面", "404.html", "網址錯誤時顯示"),
+]
+VERSIONS = {
+    "v3（審閱中，照李寧結構）": "v3",
+    "v2（照 VICTOR 與李寧結構）": "v2",
+    "v1（已取代）": "v1",
+}
+SIZES = {"手機 390": (390, 780), "平板 820": (820, 900), "電腦 1280": (1280, 820)}
+
+# v3 逐項反饋的項目：(分組, 項目, 要看什麼, 對應頁面；None 表示沒有對應頁面的問題)
+FEEDBACK_ITEMS = [
+    ("頁面", "首頁", "整體是否「簡單明瞭」、區塊順序、圖片與文字的比例", "home.html"),
+    ("頁面", "羽毛球列表", "材質分類、排序、商品卡的資訊", "shuttlecock.html"),
+    ("頁面", "配件列表", "配件要放哪些商品", "accessories.html"),
+    ("頁面", "商品頁", "規格條列、球速、價格、購買按鈕、分頁內容", "product.html#no-3a"),
+    ("頁面", "銷售通路", "通路是否齊全、說明是否正確", "where-to-buy.html"),
+    ("頁面", "最新消息與文章", "要放哪些消息、由誰提供", "news.html"),
+    ("頁面", "聯絡我們", "問題類別是否合適", "contact.html"),
+    ("頁面", "品牌故事", "文案、要不要加照片", "about.html"),
+    ("頁面", "型錄下載", "要不要做 DM 型錄 PDF", "catalog-download.html"),
+    ("頁面", "找不到頁面", "文字與引導", "404.html"),
+    ("設計改動", "1 首頁改圖片主導", "拿掉說明段落後，資訊夠不夠", "home.html"),
+    ("設計改動", "2 滿版主輪播", "三張主視覺的內容與順序", "home.html"),
+    ("設計改動", "3 首頁商品格", "放 8 款＋「看全部」是否合適", "home.html"),
+    ("設計改動", "4 頁首（公告條、深藍品牌帶、導覽下拉）", "標誌置中、導覽項目與順序", "home.html"),
+    ("設計改動", "5 手機選單", "左上選單鍵、全螢幕選單、羽毛球可展開（預覽選「手機」）", "home.html"),
+    ("設計改動", "6 手機底部固定列", "首頁、羽毛球、銷售通路、LINE 四個入口（預覽選「手機」）", "home.html"),
+    ("設計改動", "7 白底、置中標題、價格朱紅", "整體色調與質感", "home.html"),
+    ("設計改動", "8 列表頁左側材質側欄（電腦版）", "側欄與 3 欄商品（預覽選「電腦」）", "shuttlecock.html"),
+    ("設計改動", "9 頁尾三欄", "頁尾內容（捲到最下面）", "home.html"),
+    ("待確認", "Q-D 可以像李寧嗎", "需求訪談 1 說「不能讓人聯想到李寧」，這一版結構與風格照李寧，可以嗎", None),
+    ("待確認", "主視覺圖片", "電腦橫式與手機直式各一組，由誰提供", None),
+    ("待確認", "公告條內容", "最上方的公告要放什麼，沒有就拿掉", None),
+    ("待確認", "Q-1 實體據點", "有沒有實體店、經銷商或球館要列", None),
+    ("待確認", "Q-2 顯示價格", "官網要不要顯示價格", None),
+    ("待確認", "Q-3 商品資料", "No.5+ 售價、每桶顆數、球頭材質、每款一句話介紹", None),
+    ("待確認", "Q-4 通路網址", "每一款的蝦皮網址、全家好賣+ 賣場網址", None),
+    ("待確認", "Q-8 商品照片", "各款高解析度照片", None),
+    ("其他", "其他意見", "上面沒有列到的", None),
+]
+STATUS = ["未看", "可以", "要修改"]
+FB_SIZES = {"手機": (390, 760), "電腦": ("stretch", 760)}
+
+
+def static_url(path: str) -> str:
+    """設計稿檔案的完整網址。iframe 與新分頁連結都用完整網址，避免相對路徑在雲端被解析到別處。"""
+    base = st.context.url or ""
+    if not base.endswith("/"):
+        base += "/"
+    return urljoin(base, f"app/static/{path}")
+
+
+# ---------- 反饋資料 ----------
+# 沒畫在畫面上的元件，Streamlit 會清掉它的狀態；一次只顯示一項，所以填寫內容另存在 fb_data，
+# 元件改動時用 on_change 寫回，切到別項再切回來不會遺失。
+if "fb_data" not in st.session_state:
+    st.session_state.fb_data = {k: {"status": "未看", "text": ""} for k in range(len(FEEDBACK_ITEMS))}
+    st.session_state.fb_idx = 0
+    st.session_state.fb_jump = 0
+
+
+def _save(k: int, field: str, wkey: str) -> None:
+    st.session_state.fb_data[k][field] = st.session_state[wkey]
+
+
+def _go(n: int) -> None:
+    n = max(0, min(len(FEEDBACK_ITEMS) - 1, n))
+    st.session_state.fb_idx = n
+    st.session_state.fb_jump = n
+
+
+def _jump() -> None:
+    st.session_state.fb_idx = st.session_state.fb_jump
+
+
+def feedback_text(reviewer: str) -> str:
+    """把目前填的反饋整理成純文字（v3-feedback.txt 的內容）。"""
+    now = datetime.now(ZoneInfo("Asia/Taipei")).strftime("%Y-%m-%d %H:%M")
+    data = st.session_state.fb_data
+    rows = [(g, item, data[k]["status"], data[k]["text"].strip()) for k, (g, item, _, _) in enumerate(FEEDBACK_ITEMS)]
+    count = {s: sum(r[2] == s for r in rows) for s in STATUS}
+    out = [
+        "KOMBO 官網設計稿 v3 反饋",
+        f"填寫人：{reviewer.strip() or '（未填）'}",
+        f"匯出時間：{now}（台北）",
+        f"統計：可以 {count['可以']} 項、要修改 {count['要修改']} 項、未看 {count['未看']} 項，共 {len(rows)} 項",
+    ]
+    group = None
+    for g, item, status, text in rows:
+        if g != group:
+            out += ["", f"【{g}】"]
+            group = g
+        out.append(f"- {item}：{status}")
+        if text:
+            out += [f"    {line}" for line in text.splitlines()]
+    return "\n".join(out) + "\n"
+
+
+st.set_page_config(page_title="KOMBO 官網設計稿", page_icon="🏸", layout="wide")
+st.title("KOMBO 官網設計稿")
+st.caption("頁面是設計稿原檔，連結、輪播、選單都可以實際操作。官網不收單，按鈕連到的通路與 LINE 是實際連結。")
+
+tab_fb, tab_view = st.tabs(["v3 逐項反饋", "各版預覽"])
+
+# ---------- v3 逐項反饋：左邊看頁面、右邊填意見，一次一項，不用另開視窗 ----------
+with tab_fb:
+    data = st.session_state.fb_data
+    top1, top2 = st.columns([1, 2])
+    reviewer = top1.text_input("填寫人", placeholder="例如：Paul", key="fb_reviewer")
+    top2.selectbox(
+        "跳到項目",
+        range(len(FEEDBACK_ITEMS)),
+        key="fb_jump",
+        on_change=_jump,
+        format_func=lambda k: f"{k + 1}. 〔{FEEDBACK_ITEMS[k][0]}〕{FEEDBACK_ITEMS[k][1]}（{data[k]['status']}）",
+    )
+    done = sum(v["status"] != "未看" for v in data.values())
+    st.progress(done / len(FEEDBACK_ITEMS), text=f"已看 {done} / {len(FEEDBACK_ITEMS)} 項")
+
+    k = st.session_state.fb_idx
+    group, item, hint, page_href = FEEDBACK_ITEMS[k]
+    view, form = st.columns([3, 2], gap="large")
+
+    with view:
+        if page_href:
+            fb_size = st.segmented_control("預覽尺寸", list(FB_SIZES), default="手機", key="fb_size")
+            w, h = FB_SIZES[fb_size or "手機"]
+            st.iframe(static_url(f"v3/{page_href}"), width=w, height=h)
+        else:
+            st.info("這一項是問題，沒有對應的頁面。可以切到其他項目的頁面對照，或直接在右邊寫答案。")
+
+    with form:
+        st.caption(f"{k + 1} / {len(FEEDBACK_ITEMS)}　{group}")
+        st.subheader(item)
+        st.write(hint)
+        st.radio(
+            "狀態", STATUS, key=f"fb_s_{k}", horizontal=True,
+            index=STATUS.index(data[k]["status"]), on_change=_save, args=(k, "status", f"fb_s_{k}"),
+        )
+        st.text_area(
+            "意見", key=f"fb_t_{k}", height=200, value=data[k]["text"],
+            on_change=_save, args=(k, "text", f"fb_t_{k}"), placeholder="哪裡要改、想改成什麼樣子",
+        )
+        b1, b2 = st.columns(2)
+        b1.button("上一項", on_click=_go, args=(k - 1,), disabled=k == 0, use_container_width=True)
+        b2.button("下一項", on_click=_go, args=(k + 1,), disabled=k == len(FEEDBACK_ITEMS) - 1,
+                  type="primary", use_container_width=True)
+
+    st.divider()
+    st.warning("填寫內容只存在這個瀏覽器分頁，重新整理或關閉分頁就會清空，填完請下載。")
+    text = feedback_text(reviewer)
+    st.download_button("下載 v3-feedback.txt", text.encode("utf-8"), file_name="v3-feedback.txt",
+                       mime="text/plain", type="primary", icon=":material/download:")
+    with st.expander("預覽檔案內容"):
+        st.code(text, language=None)
+
+# ---------- 各版預覽 ----------
+with tab_view:
+    c1, c2, c3 = st.columns([2, 2, 1])
+    version = VERSIONS[c1.selectbox("版本", list(VERSIONS))]
+    size = c2.segmented_control("預覽尺寸", list(SIZES), default="手機 390")
+    clean = c3.toggle("隱藏待確認標記", value=False)
+
+    # 只列這一版實際有的頁面（v1 只有 6 頁）
+    pages = [p for p in PAGES if (STATIC / version / p[1].split("#")[0]).is_file()]
+    name = st.radio("頁面", [p[0] for p in pages], horizontal=True)
+    _, href, note = next(p for p in pages if p[0] == name)
+
+    file, _, anchor = href.partition("#")
+    query = "?clean=1" if clean else ""
+    url = static_url(f"{version}/{file}{query}{'#' + anchor if anchor else ''}")
+
+    st.write(note)
+    w, h = SIZES[size or "手機 390"]
+    st.iframe(url, width=w, height=h)
+    st.caption("「待確認」黃色標記是設計稿專用，正式網站不會出現。")

@@ -1,0 +1,7 @@
+# 設計稿預覽 app 的設定（只用於 preview/streamlit_app.py）
+[server]
+# 讓 preview/static（指向 design/）以 /app/static/ 網址提供，設計稿 HTML 原檔直接當網頁開
+enableStaticServing = true
+
+[browser]
+gatherUsageStats = false
