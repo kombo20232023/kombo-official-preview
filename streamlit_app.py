@@ -75,11 +75,15 @@ FB_SIZES = {"手機": (390, 760), "電腦": ("stretch", 760)}
 
 
 def static_url(path: str) -> str:
-    """設計稿檔案的完整網址。iframe 與新分頁連結都用完整網址，避免相對路徑在雲端被解析到別處。"""
+    """設計稿檔案的完整網址。
+    Streamlit Community Cloud 的 app 實際跑在 /~/+/ 底下，根目錄的 /app/static/ 只會回 Cloud 的外殼頁面
+    （2026-10-07 實測：iframe 一直轉圈），所以在 *.streamlit.app 上要加 ~/+/；本機不用。"""
     base = st.context.url or ""
     if not base.endswith("/"):
         base += "/"
-    return urljoin(base, f"app/static/{path}")
+    host = (st.context.headers.get("host") or "").split(":")[0]
+    prefix = "~/+/" if host.endswith(".streamlit.app") else ""
+    return urljoin(base, f"{prefix}app/static/{path}")
 
 
 # ---------- 反饋資料 ----------
@@ -103,6 +107,24 @@ def _go(n: int) -> None:
 
 def _jump() -> None:
     st.session_state.fb_idx = st.session_state.fb_jump
+
+
+def _next_open() -> None:
+    """跳到目前這一項之後、第一個還沒看的項目（到底就從頭找）。"""
+    data, n, cur = st.session_state.fb_data, len(FEEDBACK_ITEMS), st.session_state.fb_idx
+    for step in range(1, n + 1):
+        k = (cur + step) % n
+        if data[k]["status"] == "未看":
+            _go(k)
+            return
+
+
+def _pick_from_table(rows_shown: list[int]) -> None:
+    """總表點一列：切回逐項填寫並跳到那一項。"""
+    sel = st.session_state.fb_table.selection.rows
+    if sel:
+        _go(rows_shown[sel[0]])
+        st.session_state.fb_mode = "逐項填寫"
 
 
 def parse_feedback(raw: str) -> tuple[str, dict[int, dict[str, str]], int]:
@@ -199,41 +221,62 @@ with tab_fb:
         on_change=_jump,
         format_func=lambda k: f"{k + 1}. 〔{FEEDBACK_ITEMS[k][0]}〕{FEEDBACK_ITEMS[k][1]}（{data[k]['status']}）",
     )
-    done = sum(v["status"] != "未看" for v in data.values())
+    count = {x: sum(v["status"] == x for v in data.values()) for x in STATUS}
+    done = len(FEEDBACK_ITEMS) - count["未看"]
     st.progress(done / len(FEEDBACK_ITEMS), text=f"已看 {done} / {len(FEEDBACK_ITEMS)} 項")
+    m1, m2, m3, m4 = st.columns([1, 1, 1, 2])
+    m1.metric("可以", count["可以"])
+    m2.metric("要修改", count["要修改"])
+    m3.metric("未看", count["未看"])
+    m4.button("跳到下一個未看", on_click=_next_open, disabled=count["未看"] == 0,
+              icon=":material/skip_next:", width="stretch")
+    st.session_state.setdefault("fb_mode", "逐項填寫")
+    mode = st.segmented_control("檢視", ["逐項填寫", "總表"], key="fb_mode")
 
-    k = st.session_state.fb_idx
-    group, item, hint, page_href = FEEDBACK_ITEMS[k]
-    view, form = st.columns([3, 2], gap="large")
-
-    with view:
-        if page_href:
-            fb_size = st.segmented_control("預覽尺寸", list(FB_SIZES), default="手機", key="fb_size")
-            w, h = FB_SIZES[fb_size or "手機"]
-            st.iframe(static_url(f"v3/{page_href}"), width=w, height=h)
-        else:
-            st.info("這一項是問題，沒有對應的頁面。可以切到其他項目的頁面對照，或直接在右邊寫答案。")
-
-    with form:
-        st.caption(f"{k + 1} / {len(FEEDBACK_ITEMS)}　{group}")
-        st.subheader(item)
-        st.write(hint)
-        # 元件的值由 session_state 決定：第一次顯示這一項時從 fb_data 帶入
-        st.session_state.setdefault(f"fb_s_{k}", data[k]["status"])
-        st.session_state.setdefault(f"fb_t_{k}", data[k]["text"])
-        st.radio(
-            "狀態", STATUS, key=f"fb_s_{k}", horizontal=True,
-            on_change=_save, args=(k, "status", f"fb_s_{k}"),
+    if mode == "總表":
+        # 設計清單查核總表：點一列就切回逐項填寫並跳到該項
+        only_open = st.toggle("只看未完成（未看）", key="fb_only_open")
+        shown = [k for k in range(len(FEEDBACK_ITEMS)) if not only_open or data[k]["status"] == "未看"]
+        mark = {"未看": "⬜ 未看", "可以": "✅ 可以", "要修改": "✏️ 要修改"}
+        st.dataframe(
+            [{"#": k + 1, "分組": FEEDBACK_ITEMS[k][0], "項目": FEEDBACK_ITEMS[k][1],
+              "狀態": mark[data[k]["status"]], "意見": data[k]["text"].replace("\n", " ／ ")} for k in shown],
+            key="fb_table", on_select=lambda: _pick_from_table(shown), selection_mode="single-row",
+            hide_index=True, width="stretch", height=min(38 + 35 * len(shown), 1020),
         )
-        st.text_area(
-            "意見", key=f"fb_t_{k}", height=200,
-            on_change=_save, args=(k, "text", f"fb_t_{k}"), placeholder="哪裡要改、想改成什麼樣子",
-        )
-        b1, b2 = st.columns(2)
-        b1.button("上一項", on_click=_go, args=(k - 1,), disabled=k == 0, use_container_width=True)
-        b2.button("下一項", on_click=_go, args=(k + 1,), disabled=k == len(FEEDBACK_ITEMS) - 1,
-                  type="primary", use_container_width=True)
+        st.caption("點任一列，就會切到那一項填寫。")
+    else:
+        k = st.session_state.fb_idx
+        group, item, hint, page_href = FEEDBACK_ITEMS[k]
+        view, form = st.columns([3, 2], gap="large")
 
+        with view:
+            if page_href:
+                fb_size = st.segmented_control("預覽尺寸", list(FB_SIZES), default="手機", key="fb_size")
+                w, h = FB_SIZES[fb_size or "手機"]
+                st.iframe(static_url(f"v3/{page_href}"), width=w, height=h)
+            else:
+                st.info("這一項是問題，沒有對應的頁面。可以切到其他項目的頁面對照，或直接在右邊寫答案。")
+
+        with form:
+            st.caption(f"{k + 1} / {len(FEEDBACK_ITEMS)}　{group}")
+            st.subheader(item)
+            st.write(hint)
+            # 元件的值由 session_state 決定：第一次顯示這一項時從 fb_data 帶入
+            st.session_state.setdefault(f"fb_s_{k}", data[k]["status"])
+            st.session_state.setdefault(f"fb_t_{k}", data[k]["text"])
+            st.radio(
+                "狀態", STATUS, key=f"fb_s_{k}", horizontal=True,
+                on_change=_save, args=(k, "status", f"fb_s_{k}"),
+            )
+            st.text_area(
+                "意見", key=f"fb_t_{k}", height=200,
+                on_change=_save, args=(k, "text", f"fb_t_{k}"), placeholder="哪裡要改、想改成什麼樣子",
+            )
+            b1, b2 = st.columns(2)
+            b1.button("上一項", on_click=_go, args=(k - 1,), disabled=k == 0, width="stretch")
+            b2.button("下一項", on_click=_go, args=(k + 1,), disabled=k == len(FEEDBACK_ITEMS) - 1,
+                      type="primary", width="stretch")
     st.divider()
     st.warning("填寫內容只存在這個瀏覽器分頁，重新整理或關閉分頁就會清空。要暫存就先下載，下次從上方「接著上次填」上傳回來。")
     text = feedback_text(reviewer)
