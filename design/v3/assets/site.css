@@ -417,7 +417,7 @@ html.lock { overflow: hidden; }
 .drawer summary { list-style: none; position: relative; }
 .drawer summary::-webkit-details-marker { display: none; }
 .drawer summary::after { content: '+'; position: absolute; right: 20px; font-weight: 700; color: var(--ink-dim); }
-.drawer details[open] summary::after { content: '−'; }
+.drawer details[open] > summary::after { content: "−"; }
 .drawer details ul a { padding-left: 36px; background: var(--paper); font-weight: 400; }
 .drawer a[aria-current="page"] { color: var(--vermilion); }
 
@@ -574,3 +574,15 @@ html.lock { overflow: hidden; }
   .p-title { font-size: 1.375rem; }
   .foot-grid { grid-template-columns: 1fr; }
 }
+
+/* ---------- v3 修訂（2026-10-08）：商品系列照李寧，羽毛球、球拍、配件三類 ---------- */
+.sub.mega { display: none; grid-template-columns: repeat(3, minmax(140px, 1fr)); gap: 8px 28px; padding: 18px 22px; min-width: 520px; }
+.has-sub:hover .sub.mega, .has-sub:focus-within .sub.mega { display: grid; }
+.sub.mega ul { list-style: none; margin: 0; padding: 0; }
+.sub.mega .mega-head { font-weight: 700; color: var(--navy-deep); padding: 6px 0 8px; border-bottom: 1px solid var(--rule); margin-bottom: 4px; }
+.sub.mega li a { padding: 6px 0; }
+.drawer details details summary { padding-left: 36px; font-weight: 500; }
+.drawer details details ul a { padding-left: 52px; }
+.tabbar button { display: grid; justify-items: center; gap: 2px; padding: 8px 0 7px; color: #B9C5DC; background: none; border: 0; font: inherit; font-size: 0.6875rem; cursor: pointer; }
+.tabbar button svg { width: 22px; height: 22px; }
+.tabbar button[aria-current="page"] { color: #fff; }

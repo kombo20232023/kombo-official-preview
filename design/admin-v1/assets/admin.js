@@ -20,8 +20,7 @@
         announce: { enabled: true, text: '新品 No.5+ 偏快 77 速，看商品', link: 'product:no-5plus' },
         nav: [
           { id: 'home', label: '首頁', show: true },
-          { id: 'shuttlecock', label: '羽毛球', show: true, sub: '依材質下拉' },
-          { id: 'accessories', label: '配件', show: true },
+          { id: 'products', label: '商品系列', show: true, sub: '下拉：羽毛球、球拍、配件' },
           { id: 'news', label: '最新消息', show: true },
           { id: 'about', label: '品牌故事', show: true },
           { id: 'where', label: '銷售通路', show: true },
@@ -255,7 +254,7 @@
     where: (d) => $('[data-render=wherebanner]', d)?.closest('section'),
     news: (d) => $('[data-render=news]', d)?.closest('section')
   };
-  const NAV_HREF = { home: 'home.html', shuttlecock: 'shuttlecock.html', accessories: 'accessories.html', news: 'news.html', about: 'about.html', where: 'where-to-buy.html', contact: 'contact.html' };
+  const NAV_HREF = { home: 'home.html', products: 'shuttlecock.html', news: 'news.html', about: 'about.html', where: 'where-to-buy.html', contact: 'contact.html' };
   function applySite(d) {
     const a = draft.site.announce;
     const bar = $('.announce', d);
@@ -470,7 +469,7 @@
       <section class="panel"><header><h2>羽毛球 ${draft.products.length} 款</h2>
         <div class="seg" id="filter"><button data-v="all" aria-pressed="true">全部</button><button data-v="active" aria-pressed="false">上架中</button><button data-v="coming_soon" aria-pressed="false">即將上市</button><button data-v="discontinued" aria-pressed="false">停售</button></div></header>
         <div class="table-wrap"><table class="list"><thead><tr><th></th><th>商品</th><th class="hide-sm">材質</th><th>售價</th><th>狀態</th><th class="hide-sm">檢查</th><th></th></tr></thead><tbody id="rows"></tbody></table></div>
-        <p class="small dim" style="margin-top:10px">配件、訓練用球、最新消息的編輯畫面與這裡相同，設計稿先以羽毛球示範。</p>
+        <p class="small dim" style="margin-top:10px">球拍、配件、訓練用球、最新消息的編輯畫面與這裡相同，設計稿先以羽毛球示範；球拍另有拍重、平衡點、中管硬度欄位（002）。</p>
       </section>`;
     const draw = () => {
       const changed = new Set(changes().filter((c) => c.section === '商品').map((c) => c.key.split(' › ')[1]));

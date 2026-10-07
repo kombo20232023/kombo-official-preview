@@ -31,19 +31,26 @@
     line: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 3C6.5 3 2 6.6 2 11c0 3.9 3.5 7.2 8.3 7.9.3.1.8.2.9.5.1.3.1.7 0 1l-.1.9c0 .3-.2 1 .9.5s6-3.5 8.2-6.1c1.2-1.4 1.8-2.8 1.8-4.7C22 6.6 17.5 3 12 3z"/></svg>',
     home: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linejoin="round"/></svg>',
     tube: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="2.5" width="8" height="19" rx="1.5" stroke="currentColor" stroke-width="1.8" fill="none"/><path d="M8 7h8M8 17h8" stroke="currentColor" stroke-width="1.8"/></svg>',
+    grid: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.8" fill="none"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.8" fill="none"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.8" fill="none"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.8" fill="none"/></svg>',
     pin: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z" stroke="currentColor" stroke-width="1.8" fill="none"/><circle cx="12" cy="9.5" r="2.5" stroke="currentColor" stroke-width="1.8" fill="none"/></svg>'
   };
-  const subs = K.materials.map((x) => [`shuttlecock.html#${x.id}`, x.name]).concat([['shuttlecock.html#training', '訓練用球']]);
+  /* 商品分類照李寧：主導覽一個「商品系列」，下拉列出各類與子分類（羽毛球、球拍、配件） */
+  const CATS = [
+    { id: 'shuttlecock', name: '羽毛球', href: 'shuttlecock.html',
+      subs: K.materials.map((x) => [`shuttlecock.html#${x.id}`, x.name]).concat([['shuttlecock.html#training', '訓練用球']]) },
+    { id: 'rackets', name: '球拍', href: 'rackets.html', subs: [['rackets.html', '全部球拍']] },
+    { id: 'accessories', name: '配件', href: 'accessories.html', subs: K.accessories.map((a) => ['accessories.html', a.name]) }
+  ];
+  const inCats = CATS.some((c) => c.id === page);
   const nav = [
     ['home', 'home.html', '首頁'],
-    ['shuttlecock', 'shuttlecock.html', '羽毛球', subs],
-    ['accessories', 'accessories.html', '配件'],
+    ['products', 'shuttlecock.html', '商品系列', CATS],
     ['news', 'news.html', '最新消息'],
     ['about', 'about.html', '品牌故事'],
     ['where', 'where-to-buy.html', '銷售通路'],
     ['contact', 'contact.html', '聯絡我們']
   ];
-  const cur = (id) => (id === page ? ' aria-current="page"' : '');
+  const cur = (id) => (id === page || (id === 'products' && inCats) ? ' aria-current="page"' : '');
   const head = document.createElement('header');
   head.className = 'site-head';
   head.innerHTML = `<a class="skip" href="#main">跳到主要內容</a>
@@ -54,8 +61,8 @@
       <a class="icon-btn band-line" href="${K.line.url}" ${ext} aria-label="LINE 詢問 ${K.line.id}">${ICON.line}<span>LINE 詢問</span></a>
     </div></div>
     <nav class="site-nav" aria-label="主要導覽"><ul>${nav
-      .map(([id, href, t, sub]) => `<li${sub ? ' class="has-sub"' : ''}><a href="${href}"${cur(id)}>${t}</a>${sub
-        ? `<ul class="sub">${sub.map(([h, s]) => `<li><a href="${h}">${s}</a></li>`).join('')}</ul>` : ''}</li>`)
+      .map(([id, href, t, cats]) => `<li${cats ? ' class="has-sub"' : ''}><a href="${href}"${cur(id)}>${t}</a>${cats
+        ? `<div class="sub mega">${cats.map((c) => `<div><a class="mega-head" href="${c.href}">${c.name}</a><ul>${c.subs.map(([h, s]) => `<li><a href="${h}">${s}</a></li>`).join('')}</ul></div>`).join('')}</div>` : ''}</li>`)
       .join('')}</ul></nav>`;
   document.body.prepend(head);
 
@@ -67,8 +74,8 @@
   drawer.setAttribute('aria-modal', 'true');
   drawer.setAttribute('aria-label', '主選單');
   drawer.innerHTML = `<div class="drawer-head"><b>主選單</b><button class="icon-btn" type="button" data-close aria-label="關閉選單">${ICON.close}</button></div>
-    <ul>${nav.map(([id, href, t, sub]) => (sub
-      ? `<li><details${id === page ? ' open' : ''}><summary>${t}</summary><ul><li><a href="${href}">全部${t}</a></li>${sub.map(([h, s]) => `<li><a href="${h}">${s}</a></li>`).join('')}</ul></details></li>`
+    <ul>${nav.map(([id, href, t, cats]) => (cats
+      ? `<li><details id="drawer-cats"${inCats ? ' open' : ''}><summary>${t}</summary><ul>${cats.map((c) => `<li><details${c.id === page ? ' open' : ''}><summary>${c.name}</summary><ul><li><a href="${c.href}">全部${c.name}</a></li>${c.subs.filter(([h, s]) => s !== `全部${c.name}`).map(([h, s]) => `<li><a href="${h}">${s}</a></li>`).join('')}</ul></details></li>`).join('')}</ul></details></li>`
       : `<li><a href="${href}"${cur(id)}>${t}</a></li>`)).join('')}</ul>`;
   document.body.append(drawer);
   const menuBtn = $('.menu-btn', head);
@@ -79,6 +86,8 @@
     (open ? $('[data-close]', drawer) : menuBtn).focus();
   };
   menuBtn.addEventListener('click', () => setDrawer(true));
+  /* 底部「商品分類」：打開選單並展開商品系列（李寧的分類在選單裡） */
+  const openCats = () => { $('#drawer-cats', drawer).open = true; setDrawer(true); };
   $('[data-close]', drawer).addEventListener('click', () => setDrawer(false));
   drawer.addEventListener('keydown', (e) => { if (e.key === 'Escape') setDrawer(false); });
 
@@ -106,13 +115,12 @@
     const tabbar = document.createElement('nav');
     tabbar.className = 'tabbar';
     tabbar.setAttribute('aria-label', '快速入口');
-    tabbar.innerHTML = [
-      ['home', 'home.html', '首頁', ICON.home],
-      ['shuttlecock', 'shuttlecock.html', '羽毛球', ICON.tube],
-      ['where', 'where-to-buy.html', '銷售通路', ICON.pin]
-    ].map(([id, href, t, ic]) => `<a href="${href}"${cur(id)}>${ic}<span>${t}</span></a>`).join('')
+    tabbar.innerHTML = `<a href="home.html"${cur('home')}>${ICON.home}<span>首頁</span></a>`
+      + `<button type="button" data-cats${inCats ? ' aria-current="page"' : ''}>${ICON.grid}<span>商品分類</span></button>`
+      + `<a href="where-to-buy.html"${cur('where')}>${ICON.pin}<span>銷售通路</span></a>`
       + `<a class="t-line" href="${K.line.url}" ${ext}>${ICON.line}<span>LINE 詢問</span></a>`;
     document.body.append(tabbar);
+    $('[data-cats]', tabbar).addEventListener('click', openCats);
   }
 
   /* ---------- 元件 ---------- */
@@ -255,6 +263,13 @@
     addEventListener('hashchange', draw);
   }
 
+  /* 球拍：商品資料待提供，先放版型（與配件同一個列表版型） */
+  function renderRacketList(el) {
+    const ph = ['球拍 A', '球拍 B', '球拍 C', '球拍 D'];
+    el.innerHTML = `<div class="toolbar"><span>共 <b class="num">${ph.length}</b> 件商品</span>${tbd('球拍型號、規格、照片、售價待品牌方提供')}</div>
+      <div class="grid four">${ph.map((n) => plainCard({ name: n, price: null }, '拍重、平衡點、中管硬度')).join('')}</div>`;
+  }
+
   function renderAccessoryList(el) {
     el.innerHTML = `<div class="toolbar"><span>共 <b class="num">${K.accessories.length}</b> 件商品</span>${tbd('商品照片待提供')}</div>
       <div class="grid four">${K.accessories.map((a) => plainCard(a, a.note)).join('')}</div>`;
@@ -389,7 +404,7 @@
 
   const hooks = {
     carousel: renderCarousel, posters: renderPosters, lineup: renderLineup, mats: renderMats, wherebanner: renderWhereBanner, news: renderNews,
-    shuttles: renderShuttleList, accessories: renderAccessoryList, product: renderProduct,
+    shuttles: renderShuttleList, rackets: renderRacketList, accessories: renderAccessoryList, product: renderProduct,
     stores: renderStores, qr: renderQR, article: renderArticle
   };
   document.querySelectorAll('[data-render]').forEach((el) => hooks[el.dataset.render](el));
