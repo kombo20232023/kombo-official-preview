@@ -124,6 +124,18 @@ def _save(k: int, field: str, wkey: str) -> None:
         st.session_state.pop(f"{prefix}{k}", None)
 
 
+def _cur() -> int:
+    """目前項目的編號；狀態被清空或變成非整數（例如下拉選單被清空）時回到第 1 項，避免整頁出錯"""
+    k = st.session_state.get("fb_idx")
+    try:
+        k = int(k)
+    except (TypeError, ValueError):
+        k = 0
+    k = max(0, min(len(FEEDBACK_ITEMS) - 1, k))
+    st.session_state.fb_idx = k
+    return k
+
+
 def _go(n: int) -> None:
     n = max(0, min(len(FEEDBACK_ITEMS) - 1, n))
     st.session_state.fb_idx = n
@@ -131,12 +143,17 @@ def _go(n: int) -> None:
 
 
 def _jump() -> None:
-    st.session_state.fb_idx = st.session_state.fb_jump
+    v = st.session_state.get("fb_jump")
+    if v is None:                       # 下拉選單被清空：維持原本的項目
+        st.session_state.fb_jump = _cur()
+        return
+    st.session_state.fb_idx = v
+    st.session_state.fb_jump = _cur()
 
 
 def _next_open() -> None:
     """跳到目前這一項之後、第一個還沒看的項目（到底就從頭找）。"""
-    data, n, cur = st.session_state.fb_data, len(FEEDBACK_ITEMS), st.session_state.fb_idx
+    data, n, cur = st.session_state.fb_data, len(FEEDBACK_ITEMS), _cur()
     for step in range(1, n + 1):
         k = (cur + step) % n
         if data[k]["status"] == "未看":
@@ -419,7 +436,7 @@ with tab_fb:
             )
             st.caption("點任一列，就會切到那一項填寫。")
         else:
-            k = st.session_state.fb_idx
+            k = _cur()
             view, form = st.columns([3, 2], gap="large")
             with view:
                 page_preview(k)
