@@ -292,6 +292,25 @@ def feedback_text(reviewer: str) -> str:
 
 
 st.set_page_config(page_title="KOMBO 官網設計稿", page_icon="🏸", layout="wide")
+# 手機在頁面頂端往下滑時，不要傳到瀏覽器觸發「重新整理」——反饋只存在這個頁面，重新整理就清空。
+# Streamlit Cloud 把 App 包在同網域外框裡，外框頁也一起設定；讀不到外框就只處理自己這一頁。
+# 放在隱藏容器裡：樣式與程式照樣生效，但不佔版面（否則元素間距會讓整頁往下多 16px）
+with st.container(key="pull_guard"):
+    st.html("""<style>
+    .st-key-pull_guard, [data-testid="stLayoutWrapper"]:has(> .st-key-pull_guard) {display: none;}
+    html, body, [data-testid="stMain"], [data-testid="stSidebarContent"] {overscroll-behavior-y: contain;}
+    </style>
+    <script>/* pull-guard */
+    (() => {
+      for (const w of [window, window.parent]) {
+        try {
+          for (const el of [w.document.documentElement, w.document.body]) {
+            if (el) el.style.overscrollBehaviorY = "contain";
+          }
+        } catch (e) {}
+      }
+    })();
+    </script>""", unsafe_allow_javascript=True)
 _ua = st.context.headers.get("user-agent") or ""
 if any(x in _ua for x in ("iPhone", "Android", "Mobile")):
     st.markdown("### KOMBO 官網設計稿")
@@ -448,11 +467,18 @@ with tab_fb:
     st.subheader("備份")
     st.caption("填寫內容只存在這個頁面，重新整理就會清空。每填幾項就寄出一次；寄出的信件內容可以貼回「接著上次填」繼續。")
     text = feedback_text(reviewer)
+    # 一項都還沒填就寄出，收到的是一封全部「未看」的空白信（10/17 發生過）；先提醒，勾選確認後才能寄
+    filled = sum(1 for v in st.session_state.fb_data.values() if v["status"] != "未看" or v["text"].strip())
+    empty_ok = True
+    if filled == 0:
+        st.warning(f"目前 {len(FEEDBACK_ITEMS)} 項都還沒填。如果之前有填但不見了，可能是頁面被重新整理過，"
+                   "可以用「接著上次填」貼回上次寄出的信件內容。")
+        empty_ok = st.checkbox("我知道都還沒填，仍要寄出", key="fb_send_empty")
     if smtp_ready():
         last = st.session_state.get("fb_sent_at", 0.0)
         wait = SEND_GAP_SEC - (datetime.now().timestamp() - last)
         if st.button(f"寄出備份到 {FEEDBACK_TO}", type="primary", icon=":material/send:", width="stretch",
-                     disabled=wait > 0, help=f"兩次寄出至少間隔 {SEND_GAP_SEC} 秒"):
+                     disabled=wait > 0 or not empty_ok, help=f"兩次寄出至少間隔 {SEND_GAP_SEC} 秒"):
             try:
                 st.success(send_backup(text, reviewer))
                 st.session_state.fb_sent_at = datetime.now().timestamp()
