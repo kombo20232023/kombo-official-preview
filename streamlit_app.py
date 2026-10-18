@@ -242,6 +242,29 @@ def smtp_ready() -> bool:
     return bool(cfg.get("user") and cfg.get("password"))
 
 
+def _tab_id() -> str:
+    """這個分頁（Streamlit 連線）的短代號，寫進執行紀錄用來分辨是不是同一個分頁"""
+    try:
+        from streamlit.runtime.scriptrunner import get_script_run_ctx
+        return get_script_run_ctx().session_id[:8]
+    except Exception:
+        return "unknown"
+
+
+def fb_log(event: str, **info) -> None:
+    """寫一行到執行紀錄（Streamlit Cloud 的 Manage app → logs 看得到）。只記事件與數字，不記反饋內容。
+    10/17 23:17 一次寄出沒收到、畫面上的錯誤又沒留紀錄，事後無法查證，所以寄出成功與失敗都要記"""
+    now = datetime.now(ZoneInfo("Asia/Taipei")).strftime("%Y-%m-%d %H:%M:%S")
+    extra = " ".join(f"{k}={v}" for k, v in info.items())
+    print(f"[反饋] {now} 分頁={_tab_id()} {event} {extra}".rstrip(), flush=True)
+
+
+# 每個分頁第一次開啟時記一筆：同一時間開了幾個分頁，從紀錄就看得出來
+if not st.session_state.get("fb_open_logged"):
+    st.session_state.fb_open_logged = True
+    fb_log("開啟頁面")
+
+
 def send_backup(text: str, reviewer: str) -> str:
     """用 Secrets 的 SMTP 帳號把反饋寄到 FEEDBACK_TO，附上 v3-feedback.txt。回傳結果訊息；失敗會丟出例外。"""
     import smtplib
@@ -465,7 +488,8 @@ with tab_fb:
     # ---------- 備份：寄出、下載 ----------
     st.divider()
     st.subheader("備份")
-    st.caption("填寫內容只存在這個頁面，重新整理就會清空。每填幾項就寄出一次；寄出的信件內容可以貼回「接著上次填」繼續。")
+    st.caption("填寫內容只存在這個頁面，重新整理就會清空。每填幾項就寄出一次；寄出的信件內容可以貼回「接著上次填」繼續。"
+               "請只開一個分頁填寫：每個分頁的內容各自獨立，在 A 分頁填、從 B 分頁寄出，寄出的會是空白。")
     text = feedback_text(reviewer)
     # 一項都還沒填就寄出，收到的是一封全部「未看」的空白信（10/17 發生過）；先提醒，勾選確認後才能寄
     filled = sum(1 for v in st.session_state.fb_data.values() if v["status"] != "未看" or v["text"].strip())
@@ -481,8 +505,10 @@ with tab_fb:
                      disabled=wait > 0 or not empty_ok, help=f"兩次寄出至少間隔 {SEND_GAP_SEC} 秒"):
             try:
                 st.success(send_backup(text, reviewer))
+                fb_log("寄出成功", 已填=filled, 填寫人="有" if reviewer.strip() else "未填")
                 st.session_state.fb_sent_at = datetime.now().timestamp()
             except Exception as e:  # 寄信失敗要明講，並提供郵件 app 的替代方式
+                fb_log("寄出失敗", 已填=filled, 原因=f"{type(e).__name__}: {str(e)[:200]}")
                 st.error(f"寄出失敗（{type(e).__name__}），請改用下面的「用郵件 app 寄出」或下載檔案。")
                 st.link_button("用郵件 app 寄出", mailto_url(text, reviewer), icon=":material/mail:", width="stretch")
     else:
