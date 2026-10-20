@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KOMBO 官網費用決策圖</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap">
+<style>
+:root{--bg:#F6F4EF;--card:#FFFFFF;--ink:#1F2A3D;--dim:#5E6878;--rule:#D9D4C8;--navy:#24406E;--free:#2F7A4F;--free-bg:#E6F2EA;--mid:#9A6A12;--mid-bg:#FBF0D9;--pay:#A3392B;--pay-bg:#F8E3DF;--line:#B7AFA0}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#161A21;--card:#1F2530;--ink:#E7EAF0;--dim:#A3ABB8;--rule:#343C4A;--navy:#9DB8E6;--free:#7CCB9A;--free-bg:#1C3226;--mid:#E5BC6A;--mid-bg:#352B17;--pay:#F09A8C;--pay-bg:#3A221E;--line:#4A5262;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#161A21;--card:#1F2530;--ink:#E7EAF0;--dim:#A3ABB8;--rule:#343C4A;--navy:#9DB8E6;--free:#7CCB9A;--free-bg:#1C3226;--mid:#E5BC6A;--mid-bg:#352B17;--pay:#F09A8C;--pay-bg:#3A221E;--line:#4A5262;color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 15px/1.7 "Noto Sans TC",system-ui,-apple-system,"PingFang TC","Microsoft JhengHei",sans-serif;padding-inline:16px;padding-block:28px 48px}
+.page{max-width:880px;margin:0 auto;display:grid;gap:28px}
+h1{font-size:1.75rem;font-weight:900;line-height:1.3;margin:0;text-wrap:balance}
+h2{font-size:1.125rem;margin:0}
+p{margin:0}
+.lede{color:var(--dim);max-width:40em}
+.flow{display:grid;gap:0}
+.node{background:var(--card);border:1px solid var(--rule);border-radius:10px;padding:16px 18px;display:grid;gap:6px}
+.node.q{border:2px solid var(--navy)}
+.node.q h2{color:var(--navy)}
+.step{font-size:.8125rem;color:var(--dim);font-weight:500}
+.arrow{height:30px;display:grid;place-items:center;position:relative}
+.arrow::before{content:"";width:2px;height:100%;background:var(--line)}
+.arrow span{position:absolute;background:var(--bg);padding:0 8px;font-size:.8125rem;color:var(--dim);font-weight:500}
+.branches{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.out{border-radius:10px;padding:14px 16px;display:grid;gap:6px;align-content:start;min-width:0}
+.out .cost{font-size:1.375rem;font-weight:900;font-variant-numeric:tabular-nums;line-height:1.2}
+.out .when{font-size:.875rem;font-weight:700}
+.out ul{margin:0;padding-left:1.1em;font-size:.875rem;display:grid;gap:2px}
+.free{background:var(--free-bg);color:var(--ink)} .free .cost{color:var(--free)}
+.mid{background:var(--mid-bg)} .mid .cost{color:var(--mid)}
+.pay{background:var(--pay-bg)} .pay .cost{color:var(--pay)}
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.875rem;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font-weight:700;color:var(--dim)}
+.note{font-size:.8125rem;color:var(--dim)}
+.badge{display:inline-block;font-size:.75rem;font-weight:700;padding:1px 8px;border-radius:999px;background:var(--free);color:var(--card)}
+</style>
+</head>
+<body>
+
+<div class="page">
+  <header style="display:grid;gap:8px">
+    <h1>KOMBO 官網費用決策圖</h1>
+    <p class="lede">第一版用免費靜態網站上線，只付網域年費。要不要加動態功能、加哪一種，等上線後看到流量再決定；每一步都可以停在免費。</p>
+  </header>
+
+  <section class="flow" aria-label="決策流程">
+    <div class="node">
+      <span class="step">現在　第一版上線</span>
+      <h2>免費靜態網站 <span class="badge">第一版做這個</span></h2>
+      <p>看商品、下單導到四個通路、詢問用電子信箱。沒有資料庫、沒有後台、不用 Supabase。</p>
+    </div>
+    <div class="arrow"><span>只要付一件事</span></div>
+    <div class="node q">
+      <h2>網域選哪一個？（一定要付，用公司帳號註冊）</h2>
+    </div>
+    <div class="arrow"></div>
+    <div class="branches">
+      <div class="out free"><span class="when">.com</span><span class="cost">約 NT$330／年</span><ul><li>Cloudflare 成本價 US$10.46</li><li>最便宜</li></ul></div>
+      <div class="out free"><span class="when">.tw</span><span class="cost">NT$744／年</span><ul><li>Gandi 台灣價（購買前再核對）</li><li>看得出是台灣品牌</li></ul></div>
+      <div class="out mid"><span class="when">.com.tw</span><span class="cost">約 US$23～51／年</span><ul><li>限已登記的公司</li><li>各家價差大，購買前比價</li></ul></div>
+    </div>
+    <div class="arrow"><span>上線 2～3 個月後</span></div>
+    <div class="node q">
+      <h2>流量有起色嗎？</h2>
+      <p class="note">看三個數字：每月來客數、從網站點去通路的次數、收到的詢問信數量。</p>
+    </div>
+    <div class="arrow"></div>
+    <div class="branches">
+      <div class="out free"><span class="when">還沒有</span><span class="cost">維持 NT$0／月</span><ul><li>繼續靜態網站</li><li>先改內容、通路與社群導流</li></ul></div>
+      <div class="out mid"><span class="when">有，想加功能</span><span class="cost">往下選做法</span><ul><li>網站一開始就照可加功能的方式做</li><li>是增加，不用整個重做</li></ul></div>
+    </div>
+    <div class="arrow"></div>
+    <div class="node q">
+      <h2>想加的是哪一種功能？</h2>
+    </div>
+    <div class="arrow"></div>
+    <div class="branches">
+      <div class="out free"><span class="when">聯絡表單送到公司信箱、簡單公告</span><span class="cost">NT$0／月</span><ul><li>只用 Cloudflare（D1 資料庫＋表單函式）</li><li>在免費額度內</li></ul></div>
+      <div class="out mid"><span class="when">超過免費額度，或要寄信給客人</span><span class="cost">約 NT$160／月</span><ul><li>Cloudflare 付費方案 US$5</li><li>含每月 3,000 封寄信</li></ul></div>
+      <div class="out pay"><span class="when">非工程人員要用表格看、改資料，或會員</span><span class="cost">約 NT$1,000／月</span><ul><li>Cloudflare US$5＋Supabase Pro US$25</li><li>Supabase 免費版閒置 7 天會暫停，所以要付費版</li></ul></div>
+    </div>
+  </section>
+
+  <section style="display:grid;gap:10px">
+    <h2>免費額度有多大</h2>
+    <div class="tbl"><table>
+      <thead><tr><th>項目</th><th>免費額度</th><th>官網可能的用量</th></tr></thead>
+      <tbody>
+        <tr><td>網站主機（Cloudflare Pages）</td><td>單檔 25 MB、每站 20,000 個檔案；靜態頁面瀏覽不計次</td><td>數百個檔案</td></tr>
+        <tr><td>表單函式（Workers）</td><td>每天 100,000 次</td><td>每天幾封到幾十封詢問</td></tr>
+        <tr><td>資料庫（D1）</td><td>每天讀 500 萬列、寫 10 萬列，容量 5 GB</td><td>留言與公告，遠低於額度</td></tr>
+        <tr><td>寄信</td><td>寄到已驗證的公司信箱免費；寄給客人需付費方案</td><td>第一版不寄信給客人</td></tr>
+        <tr><td>DNS、品牌信箱轉寄</td><td>免費（轉寄只能收信）</td><td>service@網域 轉到現有 Gmail</td></tr>
+      </tbody>
+    </table></div>
+    <p class="note">匯率以 1 美元 = 32 元計。Cloudflare Pages、Workers、D1、寄信服務價格於 2026-10-20 查官方文件；.com 價格 2026-10-07（cfdomainpricing.com）；.com.tw 為第三方比價網站 2026 年 7～9 月價格。平台調價時以官方頁面為準。</p>
+  </section>
+</div>
+</body>
+</html>

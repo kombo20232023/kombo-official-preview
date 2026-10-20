@@ -589,7 +589,11 @@ with tab_assets:
                 st.caption("已建好的資料夾：" + "、".join(subs))
 
 with tab_cost:
-    st.iframe(static_url("ops-v1/index.html"), width="stretch", height=1400)
+    # 決策圖在前：第一版免費靜態，之後依流量決定要不要加動態功能（design/ops-v1/decision.html）
+    # 實測內容高度：375px 寬約 2,900px、1280px 寬約 1,570px
+    st.iframe(static_url("ops-v1/decision.html"), width="stretch", height=3000 if is_phone_ua else 1650)
+    with st.expander("詳細試算（各平台組合的月費計算器）"):
+        st.iframe(static_url("ops-v1/index.html"), width="stretch", height=1400)
 
 # ---------- 決策與時程：給業主的說明（design/decision-v1.md） ----------
 with tab_plan:
