@@ -345,7 +345,7 @@ else:
     st.title("KOMBO 官網設計稿")
     st.caption("頁面是設計稿原檔，連結、輪播、選單都可以實際操作。官網不收單，按鈕連到的通路與 LINE 是實際連結。")
 
-tab_plan, tab_fb, tab_view, tab_cost = st.tabs(["決策與時程", "v3 逐項反饋", "各版預覽", "營運成本"])
+tab_plan, tab_fb, tab_view, tab_assets, tab_cost = st.tabs(["決策與時程", "v3 逐項反饋", "各版預覽", "素材範例包", "營運成本"])
 
 # ---------- v3 逐項反饋 ----------
 # 手機：一頁捲到底的清單（phone_page）；電腦：左邊看頁面、右邊一項一項填。
@@ -556,6 +556,38 @@ with tab_view:
     st.caption("「待確認」黃色標記是設計稿專用，正式網站不會出現。")
 
 # ---------- 營運成本（設計稿：依公開牌價，不含工時與報價） ----------
+# ---------- 素材範例包：給客戶整理照片與資料的空資料夾（design/素材範例包/） ----------
+ASSET_PACK = STATIC / "素材範例包" / "KOMBO官網素材"
+
+
+@st.cache_data
+def asset_pack_zip() -> bytes:
+    """把資料夾（含空的型號資料夾）打包成 zip，解壓後就是要交回的架構。"""
+    import io
+    import zipfile
+
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
+        for p in sorted(ASSET_PACK.rglob("*")):
+            if p.name.startswith("."):
+                continue
+            arc = Path(ASSET_PACK.name) / p.relative_to(ASSET_PACK)
+            z.write(p, arc.as_posix() + ("/" if p.is_dir() else ""))
+    return buf.getvalue()
+
+
+with tab_assets:
+    st.download_button("下載 KOMBO官網素材.zip", asset_pack_zip(), file_name="KOMBO官網素材.zip",
+                       mime="application/zip", type="primary")
+    st.markdown((ASSET_PACK / "00_請先看我.txt").read_text(encoding="utf-8"))
+    st.markdown("#### 資料夾裡要放什麼")
+    for d in sorted(p for p in ASSET_PACK.iterdir() if p.is_dir()):
+        with st.expander(d.name):
+            st.text((d / "說明.txt").read_text(encoding="utf-8"))
+            subs = sorted(x.name for x in d.iterdir() if x.is_dir())
+            if subs:
+                st.caption("已建好的資料夾：" + "、".join(subs))
+
 with tab_cost:
     st.iframe(static_url("ops-v1/index.html"), width="stretch", height=1400)
 
